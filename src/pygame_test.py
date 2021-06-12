@@ -61,11 +61,13 @@ def load_image(file):
         raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
     return surface.convert()
 
+CANVASDIM = 840, 680
+CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
+
+SCREENDIM = 640, 480
+SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
+
 def main():
-    SCREENDIM = 640, 480
-
-    SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
-
     pg.init()
     screen = pg.display.set_mode(SCREENDIM, 0, 24)
     clock = pg.time.Clock()
@@ -83,15 +85,23 @@ def main():
 
     background = pg.Surface(SCREENRECT.size)
     background.fill((255, 255, 255))
-
     background.blit(grass, (0 + (SCREENDIM[0] - grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
 
+    minecart = images['minecart']
+
+    mousedown = False
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
+            if event.type == pg.MOUSEBUTTONDOWN:
+                mousedown = True
+            if event.type == pg.MOUSEBUTTONUP:
+                mousedown = False
+            if mousedown:
+                pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
         screen.blit(background, (0, 0))
         pg.display.update()
 
