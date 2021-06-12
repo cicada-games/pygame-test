@@ -1,5 +1,6 @@
 import pygame as pg
 from pygame.locals import *
+from random import random
 import os
 import sys
 import math
@@ -19,6 +20,7 @@ TILE_SIZE = 20
 
 chunks = []
 num_chunks = 0
+current_chunk_idx = 0
 
 
 recticle =(
@@ -70,7 +72,6 @@ def load_image(file):
     """ loads an image, prepares it for play
     """
     file = os.path.join(main_dir, "images", file)
-    print(file)
     try:
         surface = pg.image.load(file)
     except pg.error:
@@ -114,12 +115,96 @@ def load_chunks():
         load_chunk('chunks/' + chunk_filename)
     random.shuffle( chunks )
 
+def generate_current_chunk_region( camera_position ):
+    """ sets the chunk region which is the current and next chunk
+    """
+    num_cols = 40
+    tile_x = int( camera_position[0] / TILE_SIZE )
+    global current_chunk_idx
+    current_chunk_idx = int( tile_x / num_cols )
+
+def render_chunk( chunk_idx, background, tile ):
+    MAX_COLS = 40
+    for row_num, row_arr in enumerate(chunks[chunk_idx]):
+        for col_num, val in enumerate( row_arr ):
+            if( val == '#'):
+                offset = chunk_idx * (MAX_COLS *TILE_SIZE)
+                dest_tile_tect = pg.Rect(col_num * TILE_SIZE + offset, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE ) # don't need offset for y pos cause only moving right
+                background.blit(tile, dest_tile_tect )
 
 CANVASDIM = 640*2, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
 SCREENDIM = 640, 480
 SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
+
+CARTDIM = 40, 30
+
+orig_cx = 0
+orig_cy = 350
+def cart_coord_on_background(t):
+    cx = orig_cx + t
+    cy = orig_cy
+    return cx, cy
+
+cw = CARTDIM[0]
+ch = CARTDIM[1]
+vw = SCREENDIM[0]
+vh = SCREENDIM[1]
+vcx = (vw-cw)/2
+vcy = (vh-ch)/2
+def background_coord_on_viewport(t):
+    bcx, bcy = cart_coord_on_background(t)
+    vbx = vcx - bcx
+    vby = vcy - bcy
+    return vbx, vby
+
+def viewport_coord_on_background(t, mx, my):
+    vbx, vby = background_coord_on_viewport(t)
+    bmx = mx - vbx
+    bmy = my - vby
+    return bmx, bmy
+
+class Entity:
+    def __init__(self, entities, p):
+        self.entities = entities
+        self.p = p
+
+    def update(self):
+        return
+        
+    def draw(self, background):
+        return
+        
+class Bullet(Entity):
+    bullets_max = 100
+    bullets = []
+    def __init__(self, entities, p, v, l):
+        super().__init__(entities, p)
+        self.v = v
+        self.lifespan = l
+        self.entities = entities
+        self.entities += [self]
+        Bullet.bullets += [self]
+        if len(Bullet.bullets) == Bullet.bullets_max:
+            old_bullet = Bullet.bullets[0]
+            Bullet.bullets.remove(old_bullet)
+            if old_bullet in self.entities:
+                self.entities.remove(old_bullet)
+
+    def update(self):
+        self.lifespan -= 1
+        if self.lifespan < 0:
+            self.entities.remove(self)
+
+        px, py = self.p
+        vx, vy = self.v
+        px += vx
+        py += vy
+        self.p = px, py
+                
+    def draw(self, background):
+        pg.draw.circle(background, (0,0,0), self.p, 3, 3)
 
 def main():
     pg.init()
@@ -141,18 +226,12 @@ def main():
     ## JB PARSE LEVEL
     load_chunks()
     ## END JB PARSE LEVEL CHUNK
+    dirt = images['dirt']
 
-    background = pg.Surface(SCREENRECT.size)
-    background.fill((255, 255, 255))
-    background.blit(grass, ((SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+    background = pg.Surface(CANVASRECT.size)
+    viewport = pg.Surface(SCREENRECT.size)
 
-    ## JB RENDER TILEMAP CHUNK
-    for row_num, row_arr in enumerate(chunks[0]):
-        for col_num, val in enumerate( row_arr ):
-            if( val == '#'):
-                dest_tile_tect = pg.Rect(col_num * TILE_SIZE, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE )
-                background.blit(tile, dest_tile_tect )
-    ## JB END RENDER TILEMAP CHUNK
+    
 
     minecart = images['minecart']
 
@@ -168,8 +247,35 @@ def main():
     target_point = 0
     ## JB END SETUP FOLLOWING PATH POINTS
 
+    cart = pg.transform.scale(images['minecart'], CARTDIM)
+
+    entities = []
+    
+    t = 0
     mousedown = False
     while True:
+        t += 3
+        bcp = cart_coord_on_background(t)
+        vbp = background_coord_on_viewport(t)
+
+        generate_current_chunk_region(bcp)
+
+        background.fill((255, 255, 255))
+        ## JB RENDER TILEMAP CHUNK
+
+        if( not current_chunk_idx-1 < 0) :
+            render_chunk( current_chunk_idx-1, background, tile )
+
+        render_chunk( current_chunk_idx, background, tile)
+
+        if not current_chunk_idx+1 > num_chunks:
+            render_chunk( current_chunk_idx + 1, background, tile )
+
+        ## JB END RENDER TILEMAP CHUNK
+        background.blit(cart, bcp)
+        background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+        background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
@@ -182,36 +288,32 @@ def main():
             if mousedown:
                 mouse_pos = pg.mouse.get_pos()
                 pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
-        screen.blit(background, (0, 0))
-        # JB FOLLOW PATH
-            # move entity to next position if hasn't reach last point
-            # TODO: stop entity after reaches end
-        if entity_position.x >= points[ target_point ].x and target_point < len(points) - 1:
-            target_point+=1 
-            # find next velocity
-            # subtract
-            dist = Vec2_f(0,0)
-            dist.x = points[ target_point ].x - entity_position.x 
-            dist.y = points[ target_point ].y - entity_position.y 
-            # unit vector
-            direction = Vec2_f(0,0)
-            direction.x = dist.x / math.sqrt( dist.x*dist.x + dist.y*dist.y )
-            direction.y = dist.y / math.sqrt( dist.x*dist.x + dist.y*dist.y )
-            # set velocity
-            entity_velocity.x = direction.x * entity_speed
-            entity_velocity.y = direction.y * entity_speed
 
-        entity_position.x += entity_velocity.x
-        entity_position.y += entity_velocity.y
+                vmx, vmy = pg.mouse.get_pos()
+                bmx, bmy = viewport_coord_on_background(t, vmx, vmy)
+                bmp = (bmx, bmy)
+                bbx, bby = cart_coord_on_background(t)
+                bbx += CARTDIM[0]/2
+                bbp = (bbx, bby)
+                bbvx = bmx - bbx
+                bbvy = bmy - bby
+                bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
+                bbv = 10
+                bbvxn = bbvx/bbvh * bbv + (random.random()-0.5)
+                bbvyn = bbvy/bbvh * bbv + (random.random()-0.5)
+                bbvn = (bbvxn, bbvyn)
+                bl = 30
+                Bullet(entities, bbp, bbvn, bl)
+   
             
-    
-        pg.draw.circle( background, (255,0,0), (point1.x, point1.y), 3, 3 )
-        pg.draw.circle( background, (255,0,0), (point2.x, point2.y), 3, 3 )
-        pg.draw.circle( background, (255,0,0), (point3.x, point3.y), 3, 3 )
-        
-        pg.draw.circle( background, (0,0,255), (entity_position.x, entity_position.y ), 3, 3 )
-        # JB END FOLLOW PATH
-
+        for e in entities:
+            e.update()
+                
+        for e in entities:
+            e.draw(background)
+                
+        viewport.blit(background, vbp)
+        screen.blit(viewport, (0, 0))
         pg.display.update()
         clock.tick(40)
 
