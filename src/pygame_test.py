@@ -86,10 +86,6 @@ def main():
     ground = pg.Rect(0, 0, CANVASRECT.size[0], dirt.get_height())
 
     background = pg.Surface(CANVASRECT.size)
-    background.fill((255, 255, 255))
-    background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-    background.blit(grass, (CANVASDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-
     viewport = pg.Surface(SCREENRECT.size)
 
     cart = images['minecart']
@@ -111,7 +107,10 @@ def main():
         vby = vmy - bmy
         vbp = (vbx, vby)
         
+        background.fill((255, 255, 255))
         background.blit(cart, bmp)
+        background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+        background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
         viewport.blit(background, vbp)
 
         for event in pg.event.get():
