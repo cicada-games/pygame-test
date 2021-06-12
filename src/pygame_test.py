@@ -106,7 +106,7 @@ class Entity:
         return
         
 class Bullet(Entity):
-    bullets_max = 10
+    bullets_max = 100
     bullets = []
     def __init__(self, entities, p, v, l):
         super().__init__(entities, p)
@@ -181,10 +181,21 @@ def main():
             if event.type == pg.MOUSEBUTTONUP:
                 mousedown = False
             if mousedown:
-                mx, my = pg.mouse.get_pos()
-                bmx, bmy = viewport_coord_on_background(t, mx, my)
+                vmx, vmy = pg.mouse.get_pos()
+                bmx, bmy = viewport_coord_on_background(t, vmx, vmy)
                 bmp = (bmx, bmy)
-                Bullet(entities, bmp, ((random()-0.5) * 10, (random()-0.5) * 10), random() * 10)
+                bbx, bby = cart_coord_on_background(t)
+                bbx += CARTDIM[0]/2
+                bbp = (bbx, bby)
+                bbvx = bmx - bbx
+                bbvy = bmy - bby
+                bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
+                bbv = 10
+                bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+                bbvyn = bbvy/bbvh * bbv + (random()-0.5)
+                bbvn = (bbvxn, bbvyn)
+                bl = 30
+                Bullet(entities, bbp, bbvn, bl)
 
         for e in entities:
             e.update()
