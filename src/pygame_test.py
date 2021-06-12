@@ -244,7 +244,7 @@ class Cart(Entity):
     def __init__(self, entities, p, points):
         super().__init__(entities, p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 3
+        self.speed = 0
         self.points = points
         self.target_point = 0
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
@@ -356,21 +356,19 @@ def main():
     mousedown = False
     dead = False
     entities = []
-    while not dead:
-        entities_copy = [e for e in entities]
-        for e in entities_copy:
-            entities.remove(e)
-            del(e)
     
-        point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
-        point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
-        point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
-        points = [ point1, point2, point3 ]
-    
-        cart = Cart(entities, point1, points)
+    point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
+    point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
+    point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
+    points = [ point1, point2, point3 ]
+
+    cart = Cart(entities, point1, points)
         
+    while not dead:
         load_chunks()
         load_entities(entities, cart)
+
+        cart.speed += 1
         
         while True:
             bullets += 0.02
