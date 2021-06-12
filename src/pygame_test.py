@@ -219,7 +219,7 @@ class Bullet(Entity):
 
         tx = int(px/TILE_SIZE)
         ty = int(py/TILE_SIZE)
-        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
+        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
             self.lifespan -= 10
 
