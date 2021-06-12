@@ -107,8 +107,9 @@ class Entity:
 class Bullet(Entity):
     bullets_max = 10
     bullets = []
-    def __init__(self, entities, p):
+    def __init__(self, entities, p, v):
         super().__init__(entities, p)
+        self.v = v
         self.lifespan = 10
         self.entities = entities
         self.entities += [self]
@@ -123,6 +124,12 @@ class Bullet(Entity):
         self.lifespan -= 1
         if self.lifespan == 0:
             self.entities.remove(self)
+
+        px, py = self.p
+        vx, vy = self.v
+        px += vx
+        py += vy
+        self.p = px, py
                 
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), self.p, 3, 3)
@@ -176,7 +183,7 @@ def main():
                 mx, my = pg.mouse.get_pos()
                 bmx, bmy = viewport_coord_on_background(t, mx, my)
                 bmp = (bmx, bmy)
-                Bullet(entities, bmp)
+                Bullet(entities, bmp, (1,1))
 
         for e in entities:
             e.update()
