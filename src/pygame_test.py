@@ -54,7 +54,6 @@ def load_image(file):
     """ loads an image, prepares it for play
     """
     file = os.path.join(main_dir, "images", file)
-    print(file)
     try:
         surface = pg.image.load(file)
     except pg.error:
