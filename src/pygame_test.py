@@ -70,7 +70,7 @@ CARTDIM = 40, 30
 
 orig_cx = 0
 orig_cy = 350
-def cart_coord(t):
+def cart_coord_on_background(t):
     cx = orig_cx + t
     cy = orig_cy
     return cx, cy
@@ -81,11 +81,51 @@ vw = SCREENDIM[0]
 vh = SCREENDIM[1]
 vcx = (vw-cw)/2
 vcy = (vh-ch)/2
-def background_coord(t):
-    bcx, bcy = cart_coord(t)
+def background_coord_on_viewport(t):
+    bcx, bcy = cart_coord_on_background(t)
     vbx = vcx - bcx
     vby = vcy - bcy
     return vbx, vby
+
+def viewport_coord_on_background(t, mx, my):
+    vbx, vby = background_coord_on_viewport(t)
+    bmx = mx - vbx
+    bmy = my - vby
+    return bmx, bmy
+
+class Entity:
+    def __init__(self, entities, p):
+        self.entities = entities
+        self.p = p
+
+    def update(self):
+        return
+        
+    def draw(self, background):
+        return
+        
+class Bullet(Entity):
+    bullets_max = 10
+    bullets = []
+    def __init__(self, entities, p):
+        super().__init__(entities, p)
+        self.lifespan = 10
+        self.entities = entities
+        self.entities += [self]
+        Bullet.bullets += [self]
+        if len(Bullet.bullets) == Bullet.bullets_max:
+            old_bullet = Bullet.bullets[0]
+            Bullet.bullets.remove(old_bullet)
+            if old_bullet in self.entities:
+                self.entities.remove(old_bullet)
+
+    def update():
+        self.lifespan -= 1
+        if self.lifespan == 0:
+            self.entities.remove(self)
+                
+    def draw(self, background):
+        pg.draw.circle(background, (0,0,0), self.p, 3, 3)
 
 def main():
     pg.init()
@@ -109,17 +149,19 @@ def main():
 
     cart = pg.transform.scale(images['minecart'], CARTDIM)
 
+    entities = []
+    
     t = 0
     mousedown = False
     while True:
         t += 1
+        bcp = cart_coord_on_background(t)
+        vbp = background_coord_on_viewport(t)
+
         background.fill((255, 255, 255))
-        bcp = cart_coord(t)
         background.blit(cart, bcp)
         background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
         background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-        vbp = background_coord(t)
-        viewport.blit(background, vbp)
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -131,7 +173,15 @@ def main():
             if event.type == pg.MOUSEBUTTONUP:
                 mousedown = False
             if mousedown:
-                pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
+                mx, my = pg.mouse.get_pos()
+                bmx, bmy = viewport_coord_on_background(t, mx, my)
+                bmp = (bmx, bmy)
+                Bullet(entities, bmp)
+
+        for e in entities:
+            e.draw(background)
+                
+        viewport.blit(background, vbp)
         screen.blit(viewport, (0, 0))
         pg.display.update()
         clock.tick(40)
