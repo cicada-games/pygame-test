@@ -132,12 +132,13 @@ def load_chunk(filename):
 def load_chunks():
     """ Loads all chunk files into list and then randomizes
     """
+    global chunks
+    chunks.clear()
     for chunk_filename in sample(chunk_list, chunks_max):
         load_chunk( 'chunks/' + chunk_filename )
-    random.shuffle( chunks )
 
     global master_map
-    master_map = []
+    master_map.clear()
     for chunk in chunks:
         for i, line in enumerate(chunk):
             if len(master_map) <= i:
