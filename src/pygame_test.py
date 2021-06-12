@@ -3,6 +3,7 @@ from pygame.locals import *
 import os
 import sys
 import math
+import random
 
 main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
@@ -16,9 +17,9 @@ class Vec2_f:
 
 TILE_SIZE = 20
 
-chunk_tilemap = []
-for _ in range(30):
-    chunk_tilemap.append([" "] * 40 )
+chunks = []
+num_chunks = 0
+
 
 recticle =(
     "           X            ",
@@ -76,6 +77,44 @@ def load_image(file):
         raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
     return surface.convert()
 
+def load_chunk(filename):
+    """ loads a chunk and adds it to global list of chunks
+    """
+    chunk_tilemap = []
+    for _ in range(30):
+        chunk_tilemap.append([" "] * 40 )
+
+    chunks.append(chunk_tilemap)
+
+    chunk_file = open(filename, "r")
+    row = 0
+    col = 0
+    MAX_COLS = 40
+    MAX_ROWS = 30 
+    lines = chunk_file.readlines()
+    for line in lines:
+        for c in line:
+            if c == '\n' :
+                break
+            if col >= MAX_COLS - 1:
+                break
+            chunk_tilemap[ row ][ col ] = c
+            col+=1
+        col = 0
+        row += 1
+        if row >= MAX_ROWS - 1:
+            break
+    global num_chunks 
+    num_chunks += 1
+
+def load_chunks():
+    """ Loads all chunk files into list and then randomizes
+    """
+    for chunk_filename in os.listdir('chunks'):
+        load_chunk('chunks/' + chunk_filename)
+    random.shuffle( chunks )
+
+
 CANVASDIM = 640*2, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
@@ -100,25 +139,7 @@ def main():
     tile = images['tile']
     
     ## JB PARSE LEVEL
-    chunk_file = open("chunks/chunk1", "r")
-    row = 0
-    col = 0
-    MAX_COLS = 40
-    MAX_ROWS = 30 
-    lines = chunk_file.readlines()
-    for line in lines:
-        for c in line:
-            if c == '\n' :
-                break
-            if col >= MAX_COLS - 1:
-                break
-            chunk_tilemap[ row ][ col ] = c
-            col+=1
-        col = 0
-        row += 1
-        if row >= MAX_ROWS - 1:
-            break
-
+    load_chunks()
     ## END JB PARSE LEVEL CHUNK
 
     background = pg.Surface(SCREENRECT.size)
@@ -126,7 +147,7 @@ def main():
     background.blit(grass, ((SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
 
     ## JB RENDER TILEMAP CHUNK
-    for row_num, row_arr in enumerate(chunk_tilemap):
+    for row_num, row_arr in enumerate(chunks[0]):
         for col_num, val in enumerate( row_arr ):
             if( val == '#'):
                 dest_tile_tect = pg.Rect(col_num * TILE_SIZE, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE )
