@@ -134,7 +134,7 @@ class Entity:
 
 score = 0
 class Bullet(Entity):
-    bullets_max = 5
+    bullets_max = 100
     bullets = []
     def __init__(self, entities, p, v, l):
         super().__init__(entities, p)
@@ -318,6 +318,10 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
             if event.type == pg.MOUSEBUTTONDOWN:
+                mousedown = True
+            if event.type == pg.MOUSEBUTTONUP:
+                mousedown = False
+            if mousedown:
                 vmx, vmy = pg.mouse.get_pos()
                 bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
                 bmp = (bmx, bmy)
