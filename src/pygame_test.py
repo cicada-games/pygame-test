@@ -82,15 +82,38 @@ def main():
     TestCursor(recticle)
         
     grass = images['grass']
+    dirt = images['dirt']
+    ground = pg.Rect(0, 0, CANVASRECT.size[0], dirt.get_height())
 
-    background = pg.Surface(SCREENRECT.size)
+    background = pg.Surface(CANVASRECT.size)
     background.fill((255, 255, 255))
-    background.blit(grass, ((SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+    background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+    background.blit(grass, (CANVASDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
 
-    minecart = images['minecart']
+    viewport = pg.Surface(SCREENRECT.size)
+
+    cart = images['minecart']
+    bmx = 0
+    bmy = 200
+
+    cw = cart.get_width()
+    ch = cart.get_height()
+    vw = SCREENDIM[0]
+    vh = SCREENDIM[1]
+    vmx = (vw-cw)/2
+    vmy = (vh-ch)/2
 
     mousedown = False
     while True:
+        bmx += 1
+        bmp = (bmx, bmy)
+        vbx = vmx - bmx
+        vby = vmy - bmy
+        vbp = (vbx, vby)
+        
+        background.blit(cart, bmp)
+        viewport.blit(background, vbp)
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
@@ -102,7 +125,7 @@ def main():
                 mousedown = False
             if mousedown:
                 pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
-        screen.blit(background, (0, 0))
+        screen.blit(viewport, (0, 0))
         pg.display.update()
         clock.tick(40)
 
