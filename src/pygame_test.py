@@ -5,7 +5,6 @@ import time
 import os
 import sys
 import math
-import random
 
 def get_ticks():
     return round(time.time() * 1000)
@@ -188,7 +187,47 @@ class Entity:
     def remove(self):
         if self in self.entities:
             self.entities.remove(self)
-    
+
+class Goo(Entity):
+    goos_max = 1000
+    goos = []
+    max_lifespan = 15
+    def __init__(self, entities, p, v):
+        super().__init__(entities, p)
+        self.v = v
+        self.lifespan = Goo.max_lifespan
+        Goo.goos += [self]
+        if len(Goo.goos) == Goo.goos_max:
+            old_goo = Goo.goos[0]
+            Goo.goos.remove(old_goo)
+            if old_goo in self.entities:
+                self.entities.remove(old_goo)
+
+    def update(self):
+        self.lifespan -= 1
+        if self.lifespan < 0:
+            if self in self.entities:
+                self.entities.remove(self)
+
+        px, py = self.p.x, self.p.y
+        vx, vy = self.v
+        px += vx
+        py += vy
+        self.p = Vec2_f(px, py)
+
+        tx = int(px/TILE_SIZE)
+        ty = int(py/TILE_SIZE)
+        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
+            master_map[ty][tx] = ' ' # Destructible terrain
+            self.lifespan -= 100
+        
+    def draw(self, background):
+        decay = self.lifespan/Goo.max_lifespan
+        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
+        pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
+            
 score = 0
 class Bullet(Entity):
     bullets_max = 100
@@ -231,6 +270,10 @@ class Bullet(Entity):
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
+                    for _ in range(randint(0, 50)):
+                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
+                        gv = (random()-0.5)*3, (random()-0.5)*3
+                        Goo(self.entities, gp, gv)
                     entity.remove() # KILL CICADA!!
                     score += 1
                     bullets += 8
@@ -317,7 +360,7 @@ def main():
     global images, score, bullets
     
     pg.init()
-    screen = pg.display.set_mode(SCREENDIM, 0, 24)
+    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
 
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
@@ -373,8 +416,8 @@ def main():
                     bbvy = bmy - bby
                     bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
                     bbv = 10
-                    bbvxn = bbvx/bbvh * bbv + (random.random()-0.5)
-                    bbvyn = bbvy/bbvh * bbv + (random.random()-0.5)
+                    bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+                    bbvyn = bbvy/bbvh * bbv + (random()-0.5)
                     bbvn = (bbvxn + cart.speed, bbvyn)
                     if bullets >= 1:
                         bullets -= 1
@@ -386,11 +429,11 @@ def main():
             background.fill((255, 255, 255))
             render_master_map(background, stone)
             pg.draw.line(background, (100, 30, 20), (0, 270), (CANVASDIM[0], 270), 2) # cart track
-            background.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-            background.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-            background.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
             for e in entities:
                 e.draw(background)
+            background.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
+            background.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
+            background.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
                     
             vbp = background_coord_on_viewport(cart)
             viewport.fill((255, 255, 255))
