@@ -61,7 +61,7 @@ def load_image(file):
         raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
     return surface.convert()
 
-CANVASDIM = 840, 680
+CANVASDIM = 640*2, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
 SCREENDIM = 640, 480
@@ -85,7 +85,7 @@ def main():
 
     background = pg.Surface(SCREENRECT.size)
     background.fill((255, 255, 255))
-    background.blit(grass, (0 + (SCREENDIM[0] - grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+    background.blit(grass, ((SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
 
     minecart = images['minecart']
 
@@ -104,6 +104,7 @@ def main():
                 pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
         screen.blit(background, (0, 0))
         pg.display.update()
+        clock.tick(40)
 
 if __name__ == '__main__':
     main()
