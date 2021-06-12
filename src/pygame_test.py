@@ -76,13 +76,12 @@ def load_level(entities, filename):
     for _ in range(30):
         chunk_tilemap.append([" "] * 40 )
 
-    cart = None
-        
     point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
     point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
     point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
     points = [ point1, point2, point3 ]
-    
+    cart = Cart(entities, Vec2_f(0, 0), points)
+        
     chunk_file = open(filename, "r")
     row = 0
     col = 0
@@ -104,11 +103,11 @@ def load_level(entities, filename):
         for row_num, row_arr in enumerate(chunk_tilemap):
             for col_num, val in enumerate( row_arr ):
                 if( val == '#'):
-                    BlockFlat(entities, (col_num * TILE_SIZE, row_num * TILE_SIZE))
+                    BlockFlat(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE))
                 if( val == '@'):
-                    cart = Cart(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), points)
+                    cart.p = Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE)
                 if( val == 'C'):
-                    cart = Cicada(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE))
+                    Cicada(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), cart)
     return cart
 
 class Vec2_f: # TODO Convert all positions to Vec2_f
@@ -119,10 +118,12 @@ class Vec2_f: # TODO Convert all positions to Vec2_f
         self.x = x 
         self.y = y
         
+TILE_SIZE = 20
 class Entity:
     def __init__(self, entities, p):
         self.entities = entities
         self.entities += [self]
+        self.solid = True
         self.p = p
 
     def update(self):
@@ -131,8 +132,9 @@ class Entity:
     def draw(self, background):
         return
 
+score = 0
 class Bullet(Entity):
-    bullets_max = 100
+    bullets_max = 5
     bullets = []
     def __init__(self, entities, p, v, l):
         super().__init__(entities, p)
@@ -146,31 +148,47 @@ class Bullet(Entity):
                 self.entities.remove(old_bullet)
 
     def update(self):
+        global score
         self.lifespan -= 1
         if self.lifespan < 0:
             self.entities.remove(self)
 
-        px, py = self.p
+        px, py = self.p.x, self.p.y
         vx, vy = self.v
         px += vx
         py += vy
-        self.p = px, py
-                
-    def draw(self, background):
-        pg.draw.circle(background, (0,0,0), self.p, 3, 3)
+        self.p = Vec2_f(px, py)
 
-TILE_SIZE = 20
+        tx = int(px/TILE_SIZE)
+        ty = int(py/TILE_SIZE)
+
+        entities_copy = [entity for entity in self.entities]
+        for entity in entities_copy:
+            if type(entity) in (Cart, Bullet):
+                continue
+            ex = int(entity.p.x/TILE_SIZE)
+            ey = int(entity.p.y/TILE_SIZE)
+            if tx == ex and ty == ey:
+                if entity.solid:
+                    if self in self.entities:
+                        self.entities.remove(self) # Kill bullet
+                if type(entity) is Cicada:
+                    self.entities.remove(entity) # KILL CICADA!!
+                    score += 1
+        
+    def draw(self, background):
+        pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
+
 class BlockFlat(Entity):
     def __init__(self, entities, p):
         super().__init__(entities, p)
         self.sprite = images['tile']
-        self.solid = True
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.sprite = pg.transform.scale(images['stone'], (self.width, self.height))
         
     def draw(self, background):
-        background.blit(self.sprite, self.p)
+        background.blit(self.sprite, (self.p.x, self.p.y))
 
 class Cart(Entity):
     height = 30
@@ -214,16 +232,14 @@ class Cicada(Entity):
     twitch_timeout = 350
     last_twitch = 0
     
-    def __init__(self, entities, p):
+    def __init__(self, entities, p, cart):
         super().__init__(entities, p)
-        self.entities = entities
-        self.entities += [self]
+        self.cart = cart
         self.angle = randint(-45, 45)
         cicada_height = 65
         self.size = (int(cicada_height * 0.568421053), cicada_height)
         self.sprite = pg.transform.smoothscale(images['cicada'], self.size) 
         self.last_twitch = get_ticks()
-
 
     def update(self):
         if(get_ticks()-self.last_twitch > self.twitch_timeout):
@@ -231,12 +247,20 @@ class Cicada(Entity):
             self.last_twitch = get_ticks()
 
         self.nangle = lerp(self.nangle, self.angle, 0.05)
-                
+
+        tx = int(self.p.x/TILE_SIZE)
+        ty = int(self.p.y/TILE_SIZE)
+        cx = int(self.cart.p.x/TILE_SIZE)
+        cy = int(self.cart.p.y/TILE_SIZE)
+        if tx == cx and ty == cy:
+            if self.cart in self.entities:
+                self.entities.remove(self.cart)
+        
     def draw(self, background):
         result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
         rect = result.get_rect(center = self.sprite.get_rect(topleft = (self.p.x, self.p.y)).center) # render from the center
         background.blit(result, rect)   
-
+        
 CANVASDIM = 640*2, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
@@ -262,10 +286,13 @@ def viewport_coord_on_background(cart, mx, my):
     return bmx, bmy
         
 def main():
-    global images
+    global images, score
     
     pg.init()
     screen = pg.display.set_mode(SCREENDIM, 0, 24)
+
+    pg.font.init()
+    myfont = pg.font.SysFont('Times New Roman', 14)
 
     for image_filename in os.listdir('images'):
         image_name = image_filename.split('.')[0]
@@ -291,16 +318,12 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                 return
             if event.type == pg.MOUSEBUTTONDOWN:
-                mousedown = True
-            if event.type == pg.MOUSEBUTTONUP:
-                mousedown = False
-            if mousedown:
                 vmx, vmy = pg.mouse.get_pos()
                 bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
                 bmp = (bmx, bmy)
                 bbx, bby = cart.p.x, cart.p.y
                 bbx += cart.width/2 # Position bullets to come from middle of cart
-                bbp = (bbx, bby)
+                bbp = Vec2_f(bbx, bby)
                 bbvx = bmx - bbx
                 bbvy = bmy - bby
                 bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
@@ -311,9 +334,6 @@ def main():
                 bl = 30
                 Bullet(entities, bbp, bbvn, bl)
 
-        for e in entities:
-            e.update()
-                
         background.fill((255, 255, 255))
         for e in entities:
             e.draw(background)
@@ -321,11 +341,27 @@ def main():
         background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
                 
         vbp = background_coord_on_viewport(cart)
+        viewport.fill((255, 255, 255))
         viewport.blit(background, vbp)
         screen.blit(viewport, (0, 0))
 
+        textsurface = myfont.render('dead cicadas: ' + str(score), False, (0, 0, 0))
+        screen.blit(textsurface,(0,0))
         pg.display.update()
+
+        entities_copy = [entity for entity in entities]
+        for e in entities_copy: # Copy necessary b/c destructive of entities list
+            e.update()
+
+        if not cart in entities:
+            break # Cart was killed
+            
         clock.tick(40)
+    myfont = pg.font.SysFont('Comic Sans MS', 30)
+    textsurface = myfont.render('GAMEOVER', False, (0, 0, 0))
+    screen.blit(textsurface,(320,240))
+    pg.display.update()
+    time.sleep(5)
 
 if __name__ == '__main__':
     main()
