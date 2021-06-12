@@ -346,7 +346,7 @@ def main():
         load_entities(entities, cart)
 
         cart.p = Vec2_f(0, 240)
-        cart.speed += 1
+        cart.speed += 0.25
         
         while True:
             bullets += 0.02
