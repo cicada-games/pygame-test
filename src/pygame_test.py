@@ -3,8 +3,22 @@ from pygame.locals import *
 from random import random
 import os
 import sys
+import math
 
 main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
+
+images = {}
+for image_filename in os.listdir('images'):
+    image_name = image_filename.split('.')[0]
+    images[image_name] = load_image(image_filename)
+
+class Vec2_f: # TODO Convert all positions to Vec2_f
+    x = 0.0
+    y = 0.0
+
+    def __init__( self, x, y ):
+        self.x = x 
+        self.y = y
 
 recticle =(
     "           X            ",
@@ -61,42 +75,48 @@ def load_image(file):
         raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
     return surface.convert()
 
-CANVASDIM = 640*2, 480
-CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
+def load_level(entities, filename):
+    chunk_tilemap = []
+    for _ in range(30):
+        chunk_tilemap.append([" "] * 40 )
 
-SCREENDIM = 640, 480
-SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
-
-CARTDIM = 40, 30
-
-orig_cx = 0
-orig_cy = 350
-def cart_coord_on_background(t):
-    cx = orig_cx + t
-    cy = orig_cy
-    return cx, cy
-
-cw = CARTDIM[0]
-ch = CARTDIM[1]
-vw = SCREENDIM[0]
-vh = SCREENDIM[1]
-vcx = (vw-cw)/2
-vcy = (vh-ch)/2
-def background_coord_on_viewport(t):
-    bcx, bcy = cart_coord_on_background(t)
-    vbx = vcx - bcx
-    vby = vcy - bcy
-    return vbx, vby
-
-def viewport_coord_on_background(t, mx, my):
-    vbx, vby = background_coord_on_viewport(t)
-    bmx = mx - vbx
-    bmy = my - vby
-    return bmx, bmy
+    cart = None
+        
+    point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
+    point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
+    point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
+    points = [ point1, point2, point3 ]
+    
+    chunk_file = open(filename, "r")
+    row = 0
+    col = 0
+    MAX_COLS = 40
+    MAX_ROWS = 30 
+    lines = chunk_file.readlines()
+    for line in lines:
+        for c in line:
+            if c == '\n' :
+                break
+            if col >= MAX_COLS - 1:
+                break
+            chunk_tilemap[ row ][ col ] = c
+            col+=1
+        col = 0
+        row += 1
+        if row >= MAX_ROWS - 1:
+            break
+        for row_num, row_arr in enumerate(chunk_tilemap):
+            for col_num, val in enumerate( row_arr ):
+                if( val == '#'):
+                    BlockFlat(entities, (col_num * TILE_SIZE, row_num * TILE_SIZE))
+                if( val == '@'):
+                    cart = Cart(entities, (col_num * TILE_SIZE, row_num * TILE_SIZE), points)
+    return cart
 
 class Entity:
     def __init__(self, entities, p):
         self.entities = entities
+        self.entities += [self]
         self.p = p
 
     def update(self):
@@ -104,7 +124,7 @@ class Entity:
         
     def draw(self, background):
         return
-        
+
 class Bullet(Entity):
     bullets_max = 100
     bullets = []
@@ -112,8 +132,6 @@ class Bullet(Entity):
         super().__init__(entities, p)
         self.v = v
         self.lifespan = l
-        self.entities = entities
-        self.entities += [self]
         Bullet.bullets += [self]
         if len(Bullet.bullets) == Bullet.bullets_max:
             old_bullet = Bullet.bullets[0]
@@ -135,42 +153,92 @@ class Bullet(Entity):
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), self.p, 3, 3)
 
+TILE_SIZE = 20
+class BlockFlat(Entity):
+    def __init__(self, entities, p):
+        super().__init__(entities, p)
+        self.sprite = images['tile']
+        self.solid = True
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+        self.sprite = pg.transform.scale(images['stone'], (self.width, self.height))
+        
+    def draw(self, background):
+        background.blit(self.sprite, self.p)
+
+class Cart(Entity):
+    def __init__(self, entities, p, points):
+        super().__init__()
+        self.v = (0, 0)
+        self.points = points
+        self.target_point = 0
+        self.width = 40
+        self.height = 30
+        self.sprite = pg.transform.scale(images['minecart'], (self.width, self.height))
+
+    def update(self):
+        if self.p[0] >= self.points[ self.target_point ].x and self.target_point < len(self.points) - 1:
+            self.target_point+=1 
+            # find next velocity
+            # subtract
+            dist = Vec2_f(0,0)
+            dist.x = self.points[ self.target_point ].x - self.p[0] 
+            dist.y = self.points[ self.target_point ].y - self.p[1] 
+            # unit vector
+            direction = Vec2_f(0,0)
+            direction.x = dist.x / math.sqrt( dist.x*dist.x + dist.y*dist.y )
+            direction.y = dist.y / math.sqrt( dist.x*dist.x + dist.y*dist.y )
+            # set velocity
+            self.v.x = direction.x * entity_speed
+            self.v.y = direction.y * entity_speed
+
+        self.p[0] += self.v.x
+        self.p[0] += self.v.y
+
+    def draw(self, background):
+        background.blit(self.sprite, self.p)
+
+CANVASDIM = 640*2, 480
+CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
+
+SCREENDIM = 640, 480
+SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
+
+cw = cart.width
+ch = cart.height
+vw = SCREENDIM[0]
+vh = SCREENDIM[1]
+vcx = (vw-cw)/2
+vcy = (vh-ch)/2
+def background_coord_on_viewport(cart):
+    bcx, bcy = cart.p
+    vbx = vcx - bcx
+    vby = vcy - bcy
+    return vbx, vby
+
+def viewport_coord_on_background(cart, mx, my):
+    vbx, vby = background_coord_on_viewport(cart)
+    bmx = mx - vbx
+    bmy = my - vby
+    return bmx, bmy
+        
 def main():
     pg.init()
     screen = pg.display.set_mode(SCREENDIM, 0, 24)
     clock = pg.time.Clock()
 
-    font = pg.font.Font(None, 32)
-
-    images = {}
-    for image_filename in os.listdir('images'):
-        image_name = image_filename.split('.')[0]
-        images[image_name] = load_image(image_filename)
-
     TestCursor(recticle)
         
-    grass = images['grass']
-    dirt = images['dirt']
-
     background = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
 
-    cart = pg.transform.scale(images['minecart'], CARTDIM)
-
     entities = []
+    cart = load_level(entities, 'chunks/chunk1')
     
-    t = 0
+    grass = images['grass']
+    
     mousedown = False
     while True:
-        t += 1
-        bcp = cart_coord_on_background(t)
-        vbp = background_coord_on_viewport(t)
-
-        background.fill((255, 255, 255))
-        background.blit(cart, bcp)
-        background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-        background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
@@ -182,10 +250,10 @@ def main():
                 mousedown = False
             if mousedown:
                 vmx, vmy = pg.mouse.get_pos()
-                bmx, bmy = viewport_coord_on_background(t, vmx, vmy)
+                bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
                 bmp = (bmx, bmy)
-                bbx, bby = cart_coord_on_background(t)
-                bbx += CARTDIM[0]/2
+                bbx, bby = cart.p
+                bbx += cart.width/2 # Position bullets to come from middle of cart
                 bbp = (bbx, bby)
                 bbvx = bmx - bbx
                 bbvy = bmy - bby
@@ -200,11 +268,16 @@ def main():
         for e in entities:
             e.update()
                 
+        background.fill((255, 255, 255))
         for e in entities:
             e.draw(background)
+        background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+        background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
                 
+        vbp = background_coord_on_viewport(cart)
         viewport.blit(background, vbp)
         screen.blit(viewport, (0, 0))
+
         pg.display.update()
         clock.tick(40)
 
