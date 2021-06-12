@@ -66,6 +66,27 @@ CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 SCREENDIM = 640, 480
 SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
 
+CARTDIM = 40, 30
+
+orig_cx = 0
+orig_cy = 350
+def cart_coord(t):
+    cx = orig_cx + t
+    cy = orig_cy
+    return cx, cy
+
+cw = CARTDIM[0]
+ch = CARTDIM[1]
+vw = SCREENDIM[0]
+vh = SCREENDIM[1]
+vcx = (vw-cw)/2
+vcy = (vh-ch)/2
+def background_coord(t):
+    bcx, bcy = cart_coord(t)
+    vbx = vcx - bcx
+    vby = vcy - bcy
+    return vbx, vby
+
 def main():
     pg.init()
     screen = pg.display.set_mode(SCREENDIM, 0, 24)
@@ -86,29 +107,18 @@ def main():
     background = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
 
-    cart = images['minecart']
-    bmx = 0
-    bmy = 200
+    cart = pg.transform.scale(images['minecart'], CARTDIM)
 
-    cw = cart.get_width()
-    ch = cart.get_height()
-    vw = SCREENDIM[0]
-    vh = SCREENDIM[1]
-    vmx = (vw-cw)/2
-    vmy = (vh-ch)/2
-
+    t = 0
     mousedown = False
     while True:
-        bmx += 1
-        bmp = (bmx, bmy)
-        vbx = vmx - bmx
-        vby = vmy - bmy
-        vbp = (vbx, vby)
-        
+        t += 1
         background.fill((255, 255, 255))
-        background.blit(cart, bmp)
+        bcp = cart_coord(t)
+        background.blit(cart, bcp)
         background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
         background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+        vbp = background_coord(t)
         viewport.blit(background, vbp)
 
         for event in pg.event.get():
