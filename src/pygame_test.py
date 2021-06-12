@@ -119,7 +119,7 @@ class Bullet(Entity):
             if old_bullet in self.entities:
                 self.entities.remove(old_bullet)
 
-    def update():
+    def update(self):
         self.lifespan -= 1
         if self.lifespan == 0:
             self.entities.remove(self)
@@ -178,6 +178,9 @@ def main():
                 bmp = (bmx, bmy)
                 Bullet(entities, bmp)
 
+        for e in entities:
+            e.update()
+                
         for e in entities:
             e.draw(background)
                 
