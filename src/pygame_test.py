@@ -83,7 +83,7 @@ def main():
         
     grass = images['grass']
     dirt = images['dirt']
-    ground = pg.Rect(0, 0, CANVASRECT.size[0], dirt.get_height())
+    mountain = images['mountain']
 
     background = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
