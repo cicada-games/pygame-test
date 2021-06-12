@@ -90,6 +90,7 @@ def TestCursor(arrow):
     
 
 chunk_list = os.listdir('chunks')
+#chunk_list = ('chunk1','chunk1','chunk1','chunk1',) # handy for debugging
 chunks_max = 3
 MAX_COLS = 40
 MAX_ROWS = 30 
@@ -207,6 +208,7 @@ class Goo(Entity):
         self.lifespan -= 1
         if self.lifespan < 0:
             if self in self.entities:
+                Goo.goos.remove(self)
                 self.entities.remove(self)
 
         px, py = self.p.x, self.p.y
@@ -227,6 +229,65 @@ class Goo(Entity):
         pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*10*decay, 5)
         pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
         pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
+            
+class Gore(Entity):
+    gores_max = 100
+    gores = []
+    max_lifespan = 50
+    def __init__(self, entities, p, v):
+        super().__init__(entities, p)
+        self.v = v
+        self.lifespan = Gore.max_lifespan
+        Gore.gores += [self]
+        if len(Gore.gores) == Gore.gores_max:
+            old_gore = Gore.gores[0]
+            Gore.gores.remove(old_gore)
+            if old_gore in self.entities:
+                self.entities.remove(old_gore)
+
+    def update(self):
+        self.lifespan -= 1
+        if self.lifespan < 0:
+            self.gores.remove(self)
+            if self in self.entities:
+                self.entities.remove(self)
+
+        px, py = self.p.x, self.p.y
+        vx, vy = self.v
+        px += vx
+        py += vy
+        self.p = Vec2_f(px, py)
+
+        tx = int(px/TILE_SIZE)
+        ty = int(py/TILE_SIZE)
+
+        global score
+        entities_copy = [entity for entity in self.entities]
+        for entity in entities_copy:
+            if type(entity) in (Gore, Bullet):
+                continue
+            ex = int(entity.p.x/TILE_SIZE)
+            ey = int(entity.p.y/TILE_SIZE)
+            if tx == ex and ty == ey:
+                if type(entity) is Cicada:
+                    for _ in range(randint(0, 50)):
+                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
+                        gv = (random()-0.5)*3, (random()-0.5)*3
+                        Goo(self.entities, gp, gv)
+                    entity.remove() # KILL CICADA!!
+                    score += 1
+                    
+        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
+            master_map[ty][tx] = ' ' # Destructible terrain
+            self.lifespan -= random()*25
+        
+    def draw(self, background):
+        decay = self.lifespan/Goo.max_lifespan
+        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (100,0,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (100,100,0), (self.p.x, self.p.y), random()*5*decay, 3)
+        pg.draw.circle(background, (200,200,200), (self.p.x, self.p.y), random()*5*decay, 5)
+        pg.draw.circle(background, (50,0,0), (self.p.x, self.p.y), random()*10*decay, 8)
             
 score = 0
 class Bullet(Entity):
@@ -297,7 +358,13 @@ class Cart(Entity):
         ty = int(self.p.y/TILE_SIZE)
         if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
             self.remove() # Crashing into wall kills cart
-
+            for _ in range(randint(100, 300)):
+                gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+                angle = math.pi*2*random()
+                mag = 5 * random()
+                gv = math.cos(angle)*mag, math.sin(angle)*mag
+                Gore(self.entities, gp, gv)
+                    
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
 
@@ -332,7 +399,13 @@ class Cicada(Entity):
         if tx == cx and ty == cy:
             if self.cart in self.entities:
                 self.entities.remove(self.cart)
-        
+                for _ in range(randint(100, 300)):
+                    gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+                    angle = math.pi*2*random()
+                    mag = 5 * random()
+                    gv = math.cos(angle)*mag, math.sin(angle)*mag
+                    Gore(self.entities, gp, gv)
+            
     def draw(self, background):
         result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
         rect = result.get_rect(center = self.sprite.get_rect(topleft = (self.p.x, self.p.y)).center) # render from the center
@@ -360,7 +433,8 @@ def main():
     global images, score, bullets
     
     pg.init()
-    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
+    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
+    screen = pg.display.set_mode(SCREENDIM, 0, 24)
 
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
@@ -400,29 +474,38 @@ def main():
                     return
                 if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                     return
-                if event.type == pg.MOUSEBUTTONDOWN:
-                    mousedown = True
-                if event.type == pg.MOUSEBUTTONUP:
-                    mousedown = False
-                if mousedown:
-                    mouse_pos = pg.mouse.get_pos()
-                    vmx, vmy = pg.mouse.get_pos()
-                    bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
-                    bmp = (bmx, bmy)
-                    bbx, bby = cart.p.x, cart.p.y
-                    bbx += cart.width/2 # Position bullets to come from middle of cart
-                    bbp = Vec2_f(bbx, bby)
-                    bbvx = bmx - bbx
-                    bbvy = bmy - bby
-                    bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
-                    bbv = 10
-                    bbvxn = bbvx/bbvh * bbv + (random()-0.5)
-                    bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-                    bbvn = (bbvxn + cart.speed, bbvyn)
-                    if bullets >= 1:
-                        bullets -= 1
-                        Bullet(entities, bbp, bbvn)
-    
+                if cart in entities:
+                    if event.type == pg.KEYDOWN and event.key == pg.K_s:
+                        for _ in range(randint(100, 300)):
+                            gp = Vec2_f(cart.p.x+TILE_SIZE/2, cart.p.y+TILE_SIZE/2)
+                            angle = math.pi*2*random()
+                            mag = 5 * random()
+                            gv = math.cos(angle)*mag, math.sin(angle)*mag
+                            Gore(entities, gp, gv)
+                        entities.remove(cart)
+                    if event.type == pg.MOUSEBUTTONDOWN:
+                        mousedown = True
+                    if event.type == pg.MOUSEBUTTONUP:
+                        mousedown = False
+                    if mousedown:
+                        mouse_pos = pg.mouse.get_pos()
+                        vmx, vmy = pg.mouse.get_pos()
+                        bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
+                        bmp = (bmx, bmy)
+                        bbx, bby = cart.p.x, cart.p.y
+                        bbx += cart.width/2 # Position bullets to come from middle of cart
+                        bbp = Vec2_f(bbx, bby)
+                        bbvx = bmx - bbx
+                        bbvy = bmy - bby
+                        bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
+                        bbv = 10
+                        bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+                        bbvyn = bbvy/bbvh * bbv + (random()-0.5)
+                        bbvn = (bbvxn + cart.speed, bbvyn)
+                        if bullets >= 1:
+                            bullets -= 1
+                            Bullet(entities, bbp, bbvn)
+        
             for e in entities:
                 e.update()
                 
@@ -451,8 +534,9 @@ def main():
                 e.update()
     
             if not cart in entities:
-                dead = True
-                break # Cart was killed
+                if len(Gore.gores) == 0 and len(Goo.goos) == 0:
+                    dead = True
+                    break # Cart was killed
     
             if cart.p.x > CANVASDIM[0]:
                 break # Cart finished level
