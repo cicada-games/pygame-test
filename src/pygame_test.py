@@ -182,6 +182,10 @@ class Entity:
     def draw(self, background):
         return
 
+    def remove(self):
+        if self in self.entities:
+            self.entities.remove(self)
+    
 score = 0
 class Bullet(Entity):
     bullets_max = 100
@@ -211,6 +215,8 @@ class Bullet(Entity):
 
         tx = int(px/TILE_SIZE)
         ty = int(py/TILE_SIZE)
+        if master_map[ty][tx] == '#':
+            self.remove()
 
         entities_copy = [entity for entity in self.entities]
         for entity in entities_copy:
@@ -219,11 +225,8 @@ class Bullet(Entity):
             ex = int(entity.p.x/TILE_SIZE)
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
-                if entity.solid:
-                    if self in self.entities:
-                        self.entities.remove(self) # Kill bullet
                 if type(entity) is Cicada:
-                    self.entities.remove(entity) # KILL CICADA!!
+                    entity.remove() # KILL CICADA!!
                     score += 1
         
     def draw(self, background):
