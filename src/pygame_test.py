@@ -1,9 +1,16 @@
 import pygame as pg
 from pygame.locals import *
-from random import random
+from random import random, randint
+import time
 import os
 import sys
 import math
+
+def get_ticks():
+    return round(time.time() * 1000)
+
+def lerp (start, end, amt):
+    return (1-amt)*start+amt*end
 
 main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
@@ -15,7 +22,7 @@ def load_image(file):
         surface = pg.image.load(file)
     except pg.error:
         raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
-    return surface.convert()
+    return surface.convert_alpha() # use png's alpha channel
 
 images = {}
 
@@ -100,6 +107,8 @@ def load_level(entities, filename):
                     BlockFlat(entities, (col_num * TILE_SIZE, row_num * TILE_SIZE))
                 if( val == '@'):
                     cart = Cart(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), points)
+                if( val == 'C'):
+                    cart = Cicada(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE))
     return cart
 
 class Vec2_f: # TODO Convert all positions to Vec2_f
@@ -164,8 +173,8 @@ class BlockFlat(Entity):
         background.blit(self.sprite, self.p)
 
 class Cart(Entity):
-    width = 40
     height = 30
+    width = int(30 * 1.01923077)
 
     def __init__(self, entities, p, points):
         super().__init__(entities, p)
@@ -196,6 +205,37 @@ class Cart(Entity):
 
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
+
+class Cicada(Entity):
+    sprite = None
+    size = None
+    angle = 0
+    nangle = 0
+    twitch_timeout = 350
+    last_twitch = 0
+    
+    def __init__(self, entities, p):
+        super().__init__(entities, p)
+        self.entities = entities
+        self.entities += [self]
+        self.angle = randint(-45, 45)
+        cicada_height = 65
+        self.size = (int(cicada_height * 0.568421053), cicada_height)
+        self.sprite = pg.transform.smoothscale(images['cicada'], self.size) 
+        self.last_twitch = get_ticks()
+
+
+    def update(self):
+        if(get_ticks()-self.last_twitch > self.twitch_timeout):
+            self.angle = randint(-45, 45)
+            self.last_twitch = get_ticks()
+
+        self.nangle = lerp(self.nangle, self.angle, 0.05)
+                
+    def draw(self, background):
+        result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
+        rect = result.get_rect(center = self.sprite.get_rect(topleft = (self.p.x, self.p.y)).center) # render from the center
+        background.blit(result, rect)   
 
 CANVASDIM = 640*2, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
