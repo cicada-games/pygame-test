@@ -1,6 +1,6 @@
 import pygame as pg
 from pygame.locals import *
-from random import random, randint
+from random import random, randint, sample
 import time
 import os
 import sys
@@ -30,6 +30,7 @@ master_map = []
 num_chunks = 0
 current_chunk_idx = 0
 
+bullets = 100
 
 def load_image(file):
     """ loads an image, prepares it for play
@@ -89,11 +90,12 @@ def TestCursor(arrow):
     pg.mouse.set_cursor(size, hotspot, cursor, mask)
     
 
-chunk_list = ['chunk1', 'chunk2', 'chunk3', 'chunk4']
+chunk_list = os.listdir('chunks')
+chunks_max = 3
 MAX_COLS = 40
 MAX_ROWS = 30 
 TILE_SIZE = 20
-CANVASDIM = MAX_COLS*TILE_SIZE*len(chunk_list), MAX_ROWS*TILE_SIZE
+CANVASDIM = MAX_COLS*TILE_SIZE*chunks_max, MAX_ROWS*TILE_SIZE
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
 SCREENDIM = 640, 480
@@ -130,8 +132,7 @@ def load_chunk(filename):
 def load_chunks():
     """ Loads all chunk files into list and then randomizes
     """
-    #for chunk_filename in os.listdir('chunks'):
-    for chunk_filename in chunk_list:
+    for chunk_filename in sample(chunk_list, chunks_max):
         load_chunk( 'chunks/' + chunk_filename )
     random.shuffle( chunks )
 
@@ -145,6 +146,7 @@ def load_chunks():
                 master_map[i] += line
 
 def load_entities(entities, cart):
+    global master_map
     for row, line in enumerate(master_map):
         for col, c in enumerate(line):
             x = col * TILE_SIZE
@@ -202,7 +204,7 @@ class Bullet(Entity):
                 self.entities.remove(old_bullet)
 
     def update(self):
-        global score
+        global score, bullets
         self.lifespan -= 1
         if self.lifespan < 0:
             self.entities.remove(self)
@@ -215,7 +217,8 @@ class Bullet(Entity):
 
         tx = int(px/TILE_SIZE)
         ty = int(py/TILE_SIZE)
-        if master_map[ty][tx] == '#':
+        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
+            master_map[ty][tx] = ' ' # Destructible terrain
             self.remove()
 
         entities_copy = [entity for entity in self.entities]
@@ -228,6 +231,7 @@ class Bullet(Entity):
                 if type(entity) is Cicada:
                     entity.remove() # KILL CICADA!!
                     score += 1
+                    bullets += 8
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -262,6 +266,10 @@ class Cart(Entity):
 
         self.p.x += self.velocity.x
         self.p.y += self.velocity.y
+        tx = int(self.p.x/TILE_SIZE)
+        ty = int(self.p.y/TILE_SIZE)
+        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
+            self.remove() # Crashing into wall kills cart
 
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
@@ -322,7 +330,7 @@ def viewport_coord_on_background(cart, mx, my):
     return bmx, bmy
         
 def main():
-    global images, score
+    global images, score, bullets
     
     pg.init()
     screen = pg.display.set_mode(SCREENDIM, 0, 24)
@@ -338,8 +346,6 @@ def main():
 
     TestCursor(recticle)
         
-    
-
     background = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
 
@@ -348,8 +354,12 @@ def main():
     
     mousedown = False
     dead = False
+    entities = []
     while not dead:
-        entities = []
+        entities_copy = [e for e in entities]
+        for e in entities_copy:
+            entities.remove(e)
+            del(e)
     
         point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
         point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
@@ -362,6 +372,7 @@ def main():
         load_entities(entities, cart)
         
         while True:
+            bullets += 0.02
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     return
@@ -387,17 +398,21 @@ def main():
                     bbvyn = bbvy/bbvh * bbv + (random.random()-0.5)
                     bbvn = (bbvxn, bbvyn)
                     bl = 30
-                    Bullet(entities, bbp, bbvn, bl)
+                    if bullets >= 1:
+                        bullets -= 1
+                        Bullet(entities, bbp, bbvn, bl)
     
             for e in entities:
                 e.update()
                 
             background.fill((255, 255, 255))
             render_master_map(background, stone)
+            pg.draw.line(background, (100, 30, 20), (0, 270), (CANVASDIM[0], 270), 2) # cart track
+            background.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+            background.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
+            background.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
             for e in entities:
                 e.draw(background)
-            background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-            background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
                     
             vbp = background_coord_on_viewport(cart)
             viewport.fill((255, 255, 255))
@@ -406,6 +421,8 @@ def main():
     
             textsurface = myfont.render('dead cicadas: ' + str(score), False, (0, 0, 0))
             screen.blit(textsurface,(0,0))
+            textsurface = myfont.render('bullets: ' + str(int(bullets)), False, (0, 0, 0))
+            screen.blit(textsurface,(400,0))
             pg.display.update()
     
             entities_copy = [entity for entity in entities]
@@ -418,7 +435,7 @@ def main():
     
             if cart.p.x > CANVASDIM[0]:
                 break # Cart finished level
-                
+
             clock.tick(40)
             
     myfont = pg.font.SysFont('Comic Sans MS', 30)
