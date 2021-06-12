@@ -193,10 +193,11 @@ score = 0
 class Bullet(Entity):
     bullets_max = 100
     bullets = []
-    def __init__(self, entities, p, v, l):
+    max_lifespan = 10
+    def __init__(self, entities, p, v):
         super().__init__(entities, p)
         self.v = v
-        self.lifespan = l
+        self.lifespan = Bullet.max_lifespan
         Bullet.bullets += [self]
         if len(Bullet.bullets) == Bullet.bullets_max:
             old_bullet = Bullet.bullets[0]
@@ -220,7 +221,7 @@ class Bullet(Entity):
         ty = int(py/TILE_SIZE)
         if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
-            self.remove()
+            self.lifespan -= 10
 
         entities_copy = [entity for entity in self.entities]
         for entity in entities_copy:
@@ -244,7 +245,7 @@ class Cart(Entity):
     def __init__(self, entities, p):
         super().__init__(entities, p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 0
+        self.speed = 0.75
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
 
     def update(self):
@@ -347,6 +348,7 @@ def main():
 
         cart.p = Vec2_f(0, 240)
         cart.speed += 0.25
+        Bullet.max_lifespan += 2
         
         while True:
             bullets += 0.02
@@ -374,10 +376,9 @@ def main():
                     bbvxn = bbvx/bbvh * bbv + (random.random()-0.5)
                     bbvyn = bbvy/bbvh * bbv + (random.random()-0.5)
                     bbvn = (bbvxn + cart.speed, bbvyn)
-                    bl = 30
                     if bullets >= 1:
                         bullets -= 1
-                        Bullet(entities, bbp, bbvn, bl)
+                        Bullet(entities, bbp, bbvn)
     
             for e in entities:
                 e.update()
