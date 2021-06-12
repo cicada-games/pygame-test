@@ -19,6 +19,7 @@ class Vec2_f:
 TILE_SIZE = 20
 
 chunks = []
+master_map = []
 num_chunks = 0
 current_chunk_idx = 0
 
@@ -114,26 +115,26 @@ def load_chunk(filename):
 def load_chunks():
     """ Loads all chunk files into list and then randomizes
     """
-    for chunk_filename in os.listdir('chunks'):
+    #for chunk_filename in os.listdir('chunks'):
+    for chunk_filename in ('chunk1', 'chunk2', 'chunk3', 'chunk4'):
         load_chunk( 'chunks/' + chunk_filename)
     random.shuffle( chunks )
 
-def set_current_chunk_idx( pos : Vec2_f ):
-    """ sets the chunk region which is the current and next chunk
-    """
-    num_cols = 40
-    tile_x = int( pos.x / TILE_SIZE )
-    global current_chunk_idx
-    current_chunk_idx = int( tile_x / num_cols )
+    global master_map
+    master_map = []
+    for chunk in chunks:
+        for i, line in enumerate(chunk):
+            if len(master_map) <= i:
+                master_map += [line]
+            else:
+                master_map[i] += line
 
-## NOT USING BUT MIGHT BE A GOOD IDEA 
-def render_chunk( chunk_idx, background, tile ):
+def render_master_map( background, tile ):
     MAX_COLS = 40
-    for row_num, row_arr in enumerate(chunks[chunk_idx]):
+    for row_num, row_arr in enumerate(master_map):
         for col_num, val in enumerate( row_arr ):
             if( val == '#'):
-                offset = chunk_idx * (MAX_COLS *TILE_SIZE)
-                dest_tile_tect = pg.Rect(col_num * TILE_SIZE + offset, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE ) # don't need offset for y pos cause only moving right
+                dest_tile_tect = pg.Rect(col_num * TILE_SIZE, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE )
                 background.blit(tile, dest_tile_tect )
 
 CANVASDIM = 640*2, 480
@@ -141,36 +142,6 @@ CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
 SCREENDIM = 640, 480
 SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
-
-CARTDIM = 40, 30
-def load_level(entities):
-    chunk_tilemap = []
-    for _ in range(30):
-        chunk_tilemap.append([" "] * 40 )
-
-    cart = None
-        
-    point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
-    point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
-    point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
-    points = [ point1, point2, point3 ]
-    
-
-    load_chunks()
-
-    MAX_COLS = 40
-    # create the entities based on the chunks
-    global num_chunks
-    global chunks
-    for chunk_idx, chunk_tilemap in enumerate(chunks):
-        for row_num, row_arr in enumerate(chunk_tilemap):
-            for col_num, val in enumerate( row_arr ):
-                if( val == '#'):
-                    offset = chunk_idx * (MAX_COLS * TILE_SIZE)
-                    BlockFlat(entities, (col_num * TILE_SIZE + offset, row_num * TILE_SIZE))
-                if( val == '@'):
-                    cart = Cart(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), points)
-    return cart
 
 class Vec2_f: # TODO Convert all positions to Vec2_f
     x = 0.0
@@ -221,18 +192,6 @@ class Bullet(Entity):
         pg.draw.circle(background, (0,0,0), self.p, 3, 3)
 
 TILE_SIZE = 20
-class BlockFlat(Entity):
-    def __init__(self, entities, p):
-        super().__init__(entities, p)
-        self.sprite = images['tile']
-        self.solid = True
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
-        self.sprite = pg.transform.scale(images['stone'], (self.width, self.height))
-        
-    def draw(self, background):
-        background.blit(self.sprite, self.p)
-
 class Cart(Entity):
     width = 40
     height = 30
@@ -267,7 +226,7 @@ class Cart(Entity):
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
 
-CANVASDIM = 640*2, 480
+CANVASDIM = 640*4, 480
 CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 
 SCREENDIM = 640, 480
@@ -312,34 +271,20 @@ def main():
 
     entities = []
 
-    cart = load_level(entities)
+    load_chunks()
+    
+    point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
+    point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
+    point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
+    points = [ point1, point2, point3 ]
+
+    cart = Cart(entities, point1, points)
     
     grass = images['grass']
+    stone = pg.transform.scale(images['stone'], (20, 20))
     
     mousedown = False
     while True:
-        #bcp = cart_coord_on_background(t)
-        #vbp = background_coord_on_viewport(t)
-
-
-
-        background.fill((255, 255, 255))
-        ## JB RENDER TILEMAP CHUNK 
-        ## NOT USING. INSTEAD EACH TILE IS AN ENTITY BLOCKFLAT THAT MAINTAINS ITS POSITION
-#         set_current_chunk_idx(cart.p)
-        # if( not current_chunk_idx-1 < 0) :
-        #     render_chunk( current_chunk_idx-1, background, tile )
-
-        # render_chunk( current_chunk_idx, background, tile)
-
-        # if not current_chunk_idx+1 > num_chunks:
-        #     render_chunk( current_chunk_idx + 1, background, tile )
-
-        ## JB END RENDER TILEMAP CHUNK
-       # background.blit(cart, bcp)
-        background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-        background.blit(grass, (SCREENDIM[0] + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
-
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
@@ -351,8 +296,6 @@ def main():
                 mousedown = False
             if mousedown:
                 mouse_pos = pg.mouse.get_pos()
-                pg.draw.circle(background, (0,0,0), pg.mouse.get_pos(), 3, 3)
-
                 vmx, vmy = pg.mouse.get_pos()
                 bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
                 bmp = (bmx, bmy)
@@ -374,6 +317,7 @@ def main():
             e.update()
                 
         background.fill((255, 255, 255))
+        render_master_map(background, stone)
         for e in entities:
             e.draw(background)
         background.blit(grass, (               (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
