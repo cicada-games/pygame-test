@@ -111,16 +111,6 @@ def load_chunk(filename):
     global num_chunks 
     num_chunks += 1
 
-def create_block_entities_from_chunk_tilemap( chunk_idx, entities ):
-    global chunks
-    chunk_tilemap = chunks[ chunk_idx ]
-    MAX_COLS = 40
-    for row_num, row_arr in enumerate(chunk_tilemap):
-        for col_num, val in enumerate( row_arr ):
-            if( val == '#'):
-                position_offset = chunk_idx * (MAX_COLS *TILE_SIZE)
-                BlockFlat(entities, (col_num * TILE_SIZE + position_offset, row_num * TILE_SIZE))
-
 def load_chunks():
     """ Loads all chunk files into list and then randomizes
     """
@@ -153,7 +143,7 @@ SCREENDIM = 640, 480
 SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
 
 CARTDIM = 40, 30
-def load_level(entities, filename):
+def load_level(entities):
     chunk_tilemap = []
     for _ in range(30):
         chunk_tilemap.append([" "] * 40 )
@@ -322,7 +312,7 @@ def main():
 
     entities = []
 
-    cart = load_level(entities, 'chunks/chunk1')
+    cart = load_level(entities)
     
     grass = images['grass']
     
