@@ -450,8 +450,8 @@ def main():
     global images, score, bullets
     
     pg.init()
-    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
-    screen = pg.display.set_mode(SCREENDIM, 0, 24)
+    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
+    #screen = pg.display.set_mode(SCREENDIM, 0, 24)
 
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
