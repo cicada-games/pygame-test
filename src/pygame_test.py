@@ -100,14 +100,14 @@ def load_level(entities, filename):
         row += 1
         if row >= MAX_ROWS - 1:
             break
-        for row_num, row_arr in enumerate(chunk_tilemap):
-            for col_num, val in enumerate( row_arr ):
-                if( val == '#'):
-                    BlockFlat(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE))
-                if( val == '@'):
-                    cart.p = Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE)
-                if( val == 'C'):
-                    Cicada(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), cart)
+    for row_num, row_arr in enumerate(chunk_tilemap):
+        for col_num, val in enumerate( row_arr ):
+            if( val == '#'):
+                BlockFlat(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE))
+            if( val == '@'):
+                cart.p = Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE)
+            if( val == 'C'):
+                Cicada(entities, Vec2_f(col_num * TILE_SIZE, row_num * TILE_SIZE), cart)
     return cart
 
 class Vec2_f: # TODO Convert all positions to Vec2_f
