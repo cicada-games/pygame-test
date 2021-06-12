@@ -241,32 +241,14 @@ class Cart(Entity):
     height = 30
     width = int(30 * 1.01923077)
 
-    def __init__(self, entities, p, points):
+    def __init__(self, entities, p):
         super().__init__(entities, p)
         self.velocity = Vec2_f(1, 0)
         self.speed = 0
-        self.points = points
-        self.target_point = 0
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
 
     def update(self):
-        if self.p.x >= self.points[ self.target_point ].x and self.target_point < len(self.points) - 1:
-            self.target_point+=1 
-            # find next velocity
-            # subtract
-            dist = Vec2_f(0,0)
-            dist.x = self.points[ self.target_point ].x - self.p.x 
-            dist.y = self.points[ self.target_point ].y - self.p.y
-            # unit vector
-            direction = Vec2_f(0,0)
-            direction.x = dist.x / math.sqrt( dist.x*dist.x + dist.y*dist.y )
-            direction.y = dist.y / math.sqrt( dist.x*dist.x + dist.y*dist.y )
-            # set velocity
-            self.velocity.x = direction.x * self.speed
-            self.velocity.y = direction.y * self.speed
-
-        self.p.x += self.velocity.x
-        self.p.y += self.velocity.y
+        self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
         if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
@@ -356,18 +338,14 @@ def main():
     mousedown = False
     dead = False
     entities = []
-    
-    point1 = Vec2_f( 10, SCREENDIM[ 1 ]/2) # beginning 
-    point2 = Vec2_f( SCREENDIM[ 0 ]/2, SCREENDIM[ 1 ]/2) # middle
-    point3 = Vec2_f( SCREENDIM[ 0 ] - 10, SCREENDIM[ 1 ]/2 ) # end
-    points = [ point1, point2, point3 ]
 
-    cart = Cart(entities, point1, points)
+    cart = Cart(entities, Vec2_f(0, 240))
         
     while not dead:
         load_chunks()
         load_entities(entities, cart)
 
+        cart.p = Vec2_f(0, 240)
         cart.speed += 1
         
         while True:
@@ -395,7 +373,7 @@ def main():
                     bbv = 10
                     bbvxn = bbvx/bbvh * bbv + (random.random()-0.5)
                     bbvyn = bbvy/bbvh * bbv + (random.random()-0.5)
-                    bbvn = (bbvxn, bbvyn)
+                    bbvn = (bbvxn + cart.speed, bbvyn)
                     bl = 30
                     if bullets >= 1:
                         bullets -= 1
