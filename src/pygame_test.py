@@ -219,6 +219,23 @@ class Goo(Entity):
 
         tx = int(px/TILE_SIZE)
         ty = int(py/TILE_SIZE)
+        
+        global score
+        entities_copy = [entity for entity in self.entities]
+        for entity in entities_copy:
+            if type(entity) in (Goo, Bullet):
+                continue
+            ex = int(entity.p.x/TILE_SIZE)
+            ey = int(entity.p.y/TILE_SIZE)
+            if tx == ex and ty == ey:
+                if type(entity) is Cicada:
+                    for _ in range(randint(0, 50)):
+                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
+                        gv = (random()-0.5)*3, (random()-0.5)*3
+                        Goo(self.entities, gp, gv)
+                    entity.remove() # KILL CICADA!!
+                    score += 1
+                    
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
             self.lifespan -= 100
