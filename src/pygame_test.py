@@ -3,8 +3,7 @@ from pygame.locals import *
 import os
 import sys
 
-#main_dir = os.path.split(os.path.abspath(__file__))[0]
-main_dir = sys.argv[1]
+main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
 recticle =(
     "           X            ",
@@ -80,12 +79,12 @@ def main():
 
     TestCursor(recticle)
         
-    bgdtile = images['grass']
+    grass = images['grass']
 
     background = pg.Surface(SCREENRECT.size)
     background.fill((255, 255, 255))
 
-    background.blit(bgdtile, (0, 0))
+    background.blit(grass, (0 + (SCREENDIM[0] - grass.get_width())/2, SCREENDIM[1]-grass.get_height()))
 
     while True:
         for event in pg.event.get():
