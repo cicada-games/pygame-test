@@ -1,5 +1,6 @@
 import pygame as pg
 from pygame.locals import *
+from random import random
 import os
 import sys
 
@@ -107,10 +108,10 @@ class Entity:
 class Bullet(Entity):
     bullets_max = 10
     bullets = []
-    def __init__(self, entities, p, v):
+    def __init__(self, entities, p, v, l):
         super().__init__(entities, p)
         self.v = v
-        self.lifespan = 10
+        self.lifespan = l
         self.entities = entities
         self.entities += [self]
         Bullet.bullets += [self]
@@ -122,7 +123,7 @@ class Bullet(Entity):
 
     def update(self):
         self.lifespan -= 1
-        if self.lifespan == 0:
+        if self.lifespan < 0:
             self.entities.remove(self)
 
         px, py = self.p
@@ -183,7 +184,7 @@ def main():
                 mx, my = pg.mouse.get_pos()
                 bmx, bmy = viewport_coord_on_background(t, mx, my)
                 bmp = (bmx, bmy)
-                Bullet(entities, bmp, (1,1))
+                Bullet(entities, bmp, ((random()-0.5) * 10, (random()-0.5) * 10), random() * 10)
 
         for e in entities:
             e.update()
