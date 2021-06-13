@@ -375,6 +375,7 @@ def main():
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
 
+    # Has to be here because pygame needs to initialize beforehand
     for image_filename in os.listdir('images'):
         image_name = image_filename.split('.')[0]
         images[image_name] = load_image(image_filename)
