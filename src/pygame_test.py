@@ -8,7 +8,7 @@ import math
 
 from cursor_aimer import CursorAimer
 
-main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
+main_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 
 TILE_SIZE = 20
 
