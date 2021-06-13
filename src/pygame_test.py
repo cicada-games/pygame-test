@@ -281,7 +281,7 @@ class Cart(Entity):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             angle = math.pi*2*random()
             mag = 5 * random()
-            gv = math.cos(angle)*mag, math.sin(angle)*mag
+            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
             Gore(self.entities, gp, gv)
 
     def shoot(self):
