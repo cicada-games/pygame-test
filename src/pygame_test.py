@@ -162,15 +162,15 @@ class Particle(Entity):
     def draw(self, background):
         return
         
-class Goo(Particle):
-    particles_max = 1000
+class Bullet(Particle):
+    particles_max = 100
     particles = []
-    max_lifespan = 15
+    max_lifespan = 10
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
 
     def decrease_lifespan(self):
-        self.lifespan -= 1000
+        self.lifespan -= 20
         
     def update_context(self):
         return
@@ -197,13 +197,9 @@ class Goo(Particle):
             self.decrease_lifespan()
         
     def draw(self, background):
-        decay = self.lifespan/Goo.max_lifespan
-        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
-        pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*10*decay, 5)
-        pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
-        pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
-            
-class Gore(Goo):
+        pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
+
+class Gore(Bullet):
     particles_max = 100
     particles = []
     max_lifespan = 50
@@ -222,16 +218,23 @@ class Gore(Goo):
         pg.draw.circle(background, (50,0,0), (self.p.x, self.p.y), random()*10*decay, 8)
             
 score = 0
-class Bullet(Goo):
-    particle_max = 100
+class Goo(Bullet):
+    particle_max = 1000
     particles = []
     max_lifespan = 10
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
 
+    def decrease_lifespan(self):
+        self.lifespan -= 1000
+        
     def draw(self, background):
-        pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
-
+        decay = self.lifespan/Goo.max_lifespan
+        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
+        pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
+            
 class Cart(Entity):
     height = 30
     width = int(30 * 1.01923077)
