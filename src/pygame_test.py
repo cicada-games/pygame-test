@@ -189,41 +189,54 @@ class Entity:
         if self in self.entities:
             self.entities.remove(self)
 
-class Goo(Entity):
-    goos_max = 1000
-    goos = []
-    max_lifespan = 15
+class Particle(Entity):
     def __init__(self, entities, p, v):
         super().__init__(entities, p)
+        clz = self.__class__
         self.v = v
-        self.lifespan = Goo.max_lifespan
-        Goo.goos += [self]
-        if len(Goo.goos) == Goo.goos_max:
-            old_goo = Goo.goos[0]
-            Goo.goos.remove(old_goo)
-            if old_goo in self.entities:
-                self.entities.remove(old_goo)
+        self.lifespan = clz.max_lifespan
+        clz.particles += [self]
+        if len(clz.particles) == clz.particles_max:
+            clz.particles[0].remove()
 
+    def remove(self):
+        super().remove()
+        self.__class__.particles.remove(self)
+            
     def update(self):
         self.lifespan -= 1
         if self.lifespan < 0:
-            if self in self.entities:
-                Goo.goos.remove(self)
-                self.entities.remove(self)
+            self.remove()
 
         px, py = self.p.x, self.p.y
         vx, vy = self.v
         px += vx
         py += vy
         self.p = Vec2_f(px, py)
+        
+    def draw(self, background):
+        return
+        
+class Goo(Particle):
+    particles_max = 1000
+    particles = []
+    max_lifespan = 15
+    def __init__(self, entities, p, v):
+        super().__init__(entities, p, v)
 
-        tx = int(px/TILE_SIZE)
-        ty = int(py/TILE_SIZE)
+    def decrease_lifespan(self):
+        self.lifespan -= 1000
+        
+    def update(self):
+        super().update()
+        
+        tx = int(self.p.x/TILE_SIZE)
+        ty = int(self.p.y/TILE_SIZE)
         
         global score
         entities_copy = [entity for entity in self.entities]
         for entity in entities_copy:
-            if type(entity) in (Goo, Bullet):
+            if type(entity) in (Goo, Gore, Bullet):
                 continue
             ex = int(entity.p.x/TILE_SIZE)
             ey = int(entity.p.y/TILE_SIZE)
@@ -234,7 +247,7 @@ class Goo(Entity):
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
-            self.lifespan -= 100
+            self.decrease_lifespan()
         
     def draw(self, background):
         decay = self.lifespan/Goo.max_lifespan
@@ -243,52 +256,15 @@ class Goo(Entity):
         pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
         pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
             
-class Gore(Entity):
-    gores_max = 100
-    gores = []
+class Gore(Goo):
+    particles_max = 100
+    particles = []
     max_lifespan = 50
     def __init__(self, entities, p, v):
-        super().__init__(entities, p)
-        self.v = v
-        self.lifespan = Gore.max_lifespan
-        Gore.gores += [self]
-        if len(Gore.gores) == Gore.gores_max:
-            old_gore = Gore.gores[0]
-            Gore.gores.remove(old_gore)
-            if old_gore in self.entities:
-                self.entities.remove(old_gore)
+        super().__init__(entities, p, v)
 
-    def update(self):
-        self.lifespan -= 1
-        if self.lifespan < 0:
-            self.gores.remove(self)
-            if self in self.entities:
-                self.entities.remove(self)
-
-        px, py = self.p.x, self.p.y
-        vx, vy = self.v
-        px += vx
-        py += vy
-        self.p = Vec2_f(px, py)
-
-        tx = int(px/TILE_SIZE)
-        ty = int(py/TILE_SIZE)
-
-        global score
-        entities_copy = [entity for entity in self.entities]
-        for entity in entities_copy:
-            if type(entity) in (Gore, Bullet):
-                continue
-            ex = int(entity.p.x/TILE_SIZE)
-            ey = int(entity.p.y/TILE_SIZE)
-            if tx == ex and ty == ey:
-                if type(entity) is Cicada:
-                    entity.remove() # KILL CICADA!!
-                    score += 1
-                    
-        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
-            master_map[ty][tx] = ' ' # Destructible terrain
-            self.lifespan -= random()*25
+    def decrease_lifespan(self):
+        self.lifespan -= random()*25
         
     def draw(self, background):
         decay = self.lifespan/Goo.max_lifespan
@@ -548,7 +524,7 @@ def main():
                 e.update()
     
             if not cart in entities:
-                if len(Gore.gores) == 0 and len(Goo.goos) == 0:
+                if len(Gore.particles) == 0 and len(Goo.particles) == 0:
                     dead = True
                     break # Cart was killed
     
