@@ -447,6 +447,10 @@ def main():
                 if cart in entities: 
                     if event.type == pg.KEYDOWN and event.key == pg.K_s:
                         cart.remove()
+                    if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                        shooting = True
+                    if event.type == pg.KEYUP and event.key == pg.K_SPACE:
+                        shooting = False
                     if event.type == pg.MOUSEBUTTONDOWN:
                         shooting = True
                     if event.type == pg.MOUSEBUTTONUP:
