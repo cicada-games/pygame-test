@@ -10,20 +10,6 @@ from cursor_aimer import CursorAimer
 
 main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
-def get_ticks():
-    return round(time.time() * 1000)
-
-def lerp (start, end, amt):
-    return (1-amt)*start+amt*end
-
-class Vec2_f:
-    x = 0.0
-    y = 0.0
-
-    def __init__( self, x, y ):
-        self.x = x 
-        self.y = y
-
 TILE_SIZE = 20
 
 chunks = []
@@ -159,17 +145,19 @@ class Particle(Entity):
     def remove(self):
         super().remove()
         self.__class__.particles.remove(self)
-            
-    def update(self):
+
+    def health_check(self):
         self.lifespan -= 1
         if self.lifespan < 0:
             self.remove()
 
-        px, py = self.p.x, self.p.y
-        vx, vy = self.v
-        px += vx
-        py += vy
-        self.p = Vec2_f(px, py)
+    def move(self):
+        self.p.x += self.v.x
+        self.p.y += self.v.y
+            
+    def update(self):
+        self.health_check()
+        self.move()
         
     def draw(self, background):
         return
@@ -285,6 +273,12 @@ class Cart(Entity):
             gv = math.cos(angle)*mag, math.sin(angle)*mag
             Gore(self.entities, gp, gv)
 
+def get_ticks():
+    return round(time.time() * 1000)
+
+def lerp(start, end, amt):
+    return (1-amt)*start+amt*end
+
 class Cicada(Entity):
     sprite = None
     size = None
@@ -325,7 +319,7 @@ class Cicada(Entity):
         super().remove()
         for _ in range(randint(0, 50)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
-            gv = (random()-0.5)*3, (random()-0.5)*3
+            gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
             Goo(self.entities, gp, gv)
         
 cw = Cart.width
@@ -361,7 +355,7 @@ def shoot(entities, cart):
     bbv = 10
     bbvxn = bbvx/bbvh * bbv + (random()-0.5)
     bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-    bbvn = (bbvxn + cart.speed, bbvyn)
+    bbvn = Vec2_f(bbvxn + cart.speed, bbvyn)
     if bullets >= 1:
         bullets -= 1
         Bullet(entities, bbp, bbvn)
@@ -431,7 +425,7 @@ def main():
                             gp = Vec2_f(cart.p.x+TILE_SIZE/2, cart.p.y+TILE_SIZE/2)
                             angle = math.pi*2*random()
                             mag = 5 * random()
-                            gv = math.cos(angle)*mag, math.sin(angle)*mag
+                            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
                             Gore(entities, gp, gv)
                         entities.remove(cart)
                     if event.type == pg.MOUSEBUTTONDOWN:
