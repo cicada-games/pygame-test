@@ -270,13 +270,7 @@ class Cart(Entity):
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
         if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
-            self.remove() # Crashing into wall kills cart
-            for _ in range(randint(100, 300)):
-                gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
-                angle = math.pi*2*random()
-                mag = 5 * random()
-                gv = math.cos(angle)*mag, math.sin(angle)*mag
-                Gore(self.entities, gp, gv)
+            self.remove()
                     
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
@@ -302,9 +296,12 @@ class Cart(Entity):
         bbvy = bmy - bby
         bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
         bbv = 10
-        bbvxn = bbvx/bbvh * bbv + (random()-0.5)
-        bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-        bbvn = Vec2_f(bbvxn + self.speed, bbvyn)
+        bbvn = Vec2_f(bbv, 0)
+        if bbvh > 0:
+            bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+            bbvyn = bbvy/bbvh * bbv + (random()-0.5)
+            bbvn = Vec2_f(bbvxn, bbvyn)
+        bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
             self.bullets -= 1
             Bullet(self.entities, bbp, bbvn)
@@ -423,13 +420,7 @@ def main():
                 # Game loop may still be running when cart is dead, so don't process input.
                 if cart in entities: 
                     if event.type == pg.KEYDOWN and event.key == pg.K_s:
-                        for _ in range(randint(100, 300)):
-                            gp = Vec2_f(cart.p.x+TILE_SIZE/2, cart.p.y+TILE_SIZE/2)
-                            angle = math.pi*2*random()
-                            mag = 5 * random()
-                            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
-                            Gore(entities, gp, gv)
-                        entities.remove(cart)
+                        cart.remove()
                     if event.type == pg.MOUSEBUTTONDOWN:
                         shooting = True
                     if event.type == pg.MOUSEBUTTONUP:
