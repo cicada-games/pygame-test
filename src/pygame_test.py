@@ -6,13 +6,13 @@ import os
 import sys
 import math
 
+main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
+
 def get_ticks():
     return round(time.time() * 1000)
 
 def lerp (start, end, amt):
     return (1-amt)*start+amt*end
-
-main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
 class Vec2_f:
     x = 0.0
@@ -377,18 +377,38 @@ vw = SCREENDIM[0]
 vh = SCREENDIM[1]
 vcx = (vw-cw)/2
 vcy = (vh-ch)/2
-def background_coord_on_viewport(cart):
+def canvas_coord_on_viewport(cart):
     bcx, bcy = cart.p.x, cart.p.y
     vbx = max(min(vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
     vby = vcy - bcy
     return vbx, vby
 
 def viewport_coord_on_background(cart, mx, my):
-    vbx, vby = background_coord_on_viewport(cart)
+    vbx, vby = canvas_coord_on_viewport(cart)
     bmx = mx - vbx
     bmy = my - vby
     return bmx, bmy
         
+def shoot(entities, cart):
+    global bullets
+    mouse_pos = pg.mouse.get_pos()
+    vmx, vmy = pg.mouse.get_pos()
+    bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
+    bmp = (bmx, bmy)
+    bbx, bby = cart.p.x, cart.p.y
+    bbx += cart.width/2 # Position bullets to come from middle of cart
+    bbp = Vec2_f(bbx, bby)
+    bbvx = bmx - bbx
+    bbvy = bmy - bby
+    bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
+    bbv = 10
+    bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+    bbvyn = bbvy/bbvh * bbv + (random()-0.5)
+    bbvn = (bbvxn + cart.speed, bbvyn)
+    if bullets >= 1:
+        bullets -= 1
+        Bullet(entities, bbp, bbvn)
+
 def main():
     global images, score, bullets
     
@@ -407,34 +427,48 @@ def main():
 
     TestCursor(recticle)
         
-    background = pg.Surface(CANVASRECT.size)
+    canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
 
     grass = images['grass']
+    def render_foreground(canvas):
+        canvas.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
+        canvas.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
+        canvas.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
+        
     stone = pg.transform.scale(images['stone'], (20, 20))
     
-    mousedown = False
+    shooting = False
     dead = False
     entities = []
 
     cart = Cart(entities, Vec2_f(0, 240))
         
     while not dead:
+        # Create the master_map
         load_chunks()
-        load_entities(entities, cart)
 
+        # Load the entities from the master_map
+        load_entities(entities, cart) 
+
+        # Initialize the cart and its bullets
         cart.p = Vec2_f(0, 240)
         cart.speed += 0.25
         Bullet.max_lifespan += 2
         
         while True:
+            # Slowly recharge bullets so never completely hopeless
             bullets += 0.02
+            
             for event in pg.event.get():
+                # Just shut it all down
                 if event.type == pg.QUIT:
                     return
                 if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
                     return
-                if cart in entities:
+                
+                # Game loop may still be running when cart is dead, so don't process input.
+                if cart in entities: 
                     if event.type == pg.KEYDOWN and event.key == pg.K_s:
                         for _ in range(randint(100, 300)):
                             gp = Vec2_f(cart.p.x+TILE_SIZE/2, cart.p.y+TILE_SIZE/2)
@@ -444,51 +478,44 @@ def main():
                             Gore(entities, gp, gv)
                         entities.remove(cart)
                     if event.type == pg.MOUSEBUTTONDOWN:
-                        mousedown = True
+                        shooting = True
                     if event.type == pg.MOUSEBUTTONUP:
-                        mousedown = False
-                    if mousedown:
-                        mouse_pos = pg.mouse.get_pos()
-                        vmx, vmy = pg.mouse.get_pos()
-                        bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
-                        bmp = (bmx, bmy)
-                        bbx, bby = cart.p.x, cart.p.y
-                        bbx += cart.width/2 # Position bullets to come from middle of cart
-                        bbp = Vec2_f(bbx, bby)
-                        bbvx = bmx - bbx
-                        bbvy = bmy - bby
-                        bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
-                        bbv = 10
-                        bbvxn = bbvx/bbvh * bbv + (random()-0.5)
-                        bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-                        bbvn = (bbvxn + cart.speed, bbvyn)
-                        if bullets >= 1:
-                            bullets -= 1
-                            Bullet(entities, bbp, bbvn)
-        
+                        shooting = False
+                    if shooting:
+                        shoot(entities, cart)
+
+            # Fill in the canvas
+            canvas.fill((255, 255, 255))
+
+            # Draw the static parts of level
+            render_master_map(canvas, stone)
+
+            # Draw the cart track
+            pg.draw.line(canvas, (100, 30, 20), (0, 270), (CANVASDIM[0], 270), 2) 
+
+            # Draw the dynamic entities
             for e in entities:
-                e.update()
-                
-            background.fill((255, 255, 255))
-            render_master_map(background, stone)
-            pg.draw.line(background, (100, 30, 20), (0, 270), (CANVASDIM[0], 270), 2) # cart track
-            for e in entities:
-                e.draw(background)
-            background.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
-            background.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
-            background.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
-                    
-            vbp = background_coord_on_viewport(cart)
+                e.draw(canvas)
+
+            # Draw anything in the foreground
+            render_foreground(canvas)
+            
+            # Adjust the viewport to center on the cart
+            vbp = canvas_coord_on_viewport(cart)
             viewport.fill((255, 255, 255))
-            viewport.blit(background, vbp)
+            viewport.blit(canvas, vbp)
             screen.blit(viewport, (0, 0))
-    
+
+            # Heads up display
             textsurface = myfont.render('dead cicadas: ' + str(score), False, (0, 0, 0))
             screen.blit(textsurface,(0,0))
             textsurface = myfont.render('bullets: ' + str(int(bullets)), False, (0, 0, 0))
             screen.blit(textsurface,(400,0))
+
+            # Draw it all
             pg.display.update()
     
+            # Update the dynamic entities
             entities_copy = [entity for entity in entities]
             for e in entities_copy: # Copy necessary b/c destructive of entities list
                 e.update()
