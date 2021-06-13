@@ -144,7 +144,8 @@ class Particle(Entity):
 
     def remove(self):
         super().remove()
-        self.__class__.particles.remove(self)
+        if self in self.__class__.particles:
+            self.__class__.particles.remove(self)
 
     def health_check(self):
         self.lifespan -= 1
