@@ -181,6 +181,15 @@ class Dust(Particle):
         angle = math.pi*2*random()
         pg.draw.line(background, self.color, (self.p.x, self.p.y), (self.p.x+math.cos(angle)*self.size*(self.lifespan/self.max_lifespan), self.p.y+math.sin(angle)*self.size*(self.lifespan/self.max_lifespan)), 1)
 
+class Stone:
+    def kablooie(entities, p):
+        for _ in range(randint(5, 10)):
+            gp = Vec2_f(p.x+TILE_SIZE/2, p.y+TILE_SIZE/2)
+            angle = math.pi*2*random()
+            mag = 2 * random()
+            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
+            Dust(entities, gp, gv)
+
 class Bullet(Particle):
     particles_max = 100
     particles = []
@@ -208,12 +217,7 @@ class Bullet(Particle):
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
             self.decrease_lifespan()
-            for _ in range(randint(5, 10)):
-                gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
-                angle = math.pi*2*random()
-                mag = 2 * random()
-                gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
-                Dust(self.entities, gp, gv)
+            Stone.kablooie(self.entities, self.p)
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -235,8 +239,7 @@ class Gore(Bullet):
         pg.draw.circle(background, (100,100,0), (self.p.x, self.p.y), random()*5*decay, 3)
         pg.draw.circle(background, (200,200,200), (self.p.x, self.p.y), random()*5*decay, 5)
         pg.draw.circle(background, (50,0,0), (self.p.x, self.p.y), random()*10*decay, 8)
-            
-score = 0
+
 class Goo(Bullet):
     particle_max = 1000
     particles = []
@@ -303,13 +306,17 @@ class Cart(Entity):
 
     def remove(self):
         super().remove()
+        self.kablooie()
+
+    def kablooie(self):
         for _ in range(randint(100, 300)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             angle = math.pi*2*random()
             mag = 5 * random()
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
             Gore(self.entities, gp, gv)
-
+        
+        
     def shoot(self):
         mouse_pos = pg.mouse.get_pos()
         vmx, vmy = pg.mouse.get_pos()
@@ -379,7 +386,10 @@ class Cicada(Entity):
         
         self.cart.score += 1
         self.cart.bullets += 8
-        
+
+        self.kablooie()
+
+    def kablooie(self):
         for _ in range(randint(0, 50)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
