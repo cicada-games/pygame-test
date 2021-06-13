@@ -173,8 +173,7 @@ class Goo(Particle):
         self.lifespan -= 1000
         
     def update_context(self):
-        global score
-        score += 1
+        return
         
     def update(self):
         super().update()
@@ -227,14 +226,10 @@ class Bullet(Goo):
     particle_max = 100
     particles = []
     max_lifespan = 10
-    def __init__(self, entities, p, v):
+    def __init__(self, entities, p, v, cart):
         super().__init__(entities, p, v)
+        self.cart = cart
 
-    def update_context(self):
-        global score, bullets
-        score += 1
-        bullets += 8
-                
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
 
@@ -247,6 +242,8 @@ class Cart(Entity):
         self.velocity = Vec2_f(1, 0)
         self.speed = 0.75
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
+        self.bullets = 100
+        self.score = 0
 
     def update(self):
         self.p.x += self.velocity.x * self.speed
@@ -273,6 +270,25 @@ class Cart(Entity):
             gv = math.cos(angle)*mag, math.sin(angle)*mag
             Gore(self.entities, gp, gv)
 
+    def shoot(self):
+        mouse_pos = pg.mouse.get_pos()
+        vmx, vmy = pg.mouse.get_pos()
+        bmx, bmy = viewport_coord_on_background(self, vmx, vmy)
+        bmp = (bmx, bmy)
+        bbx, bby = self.p.x, self.p.y
+        bbx += self.width/2 # Position bullets to come from middle of cart
+        bbp = Vec2_f(bbx, bby)
+        bbvx = bmx - bbx
+        bbvy = bmy - bby
+        bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
+        bbv = 10
+        bbvxn = bbvx/bbvh * bbv + (random()-0.5)
+        bbvyn = bbvy/bbvh * bbv + (random()-0.5)
+        bbvn = Vec2_f(bbvxn + self.speed, bbvyn)
+        if self.bullets >= 1:
+            self.bullets -= 1
+            Bullet(self.entities, bbp, bbvn, self)
+    
 def get_ticks():
     return round(time.time() * 1000)
 
@@ -317,6 +333,10 @@ class Cicada(Entity):
 
     def remove(self):
         super().remove()
+        
+        self.cart.score += 1
+        self.cart.bullets += 8
+        
         for _ in range(randint(0, 50)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
@@ -340,28 +360,8 @@ def viewport_coord_on_background(cart, mx, my):
     bmy = my - vby
     return bmx, bmy
         
-def shoot(entities, cart):
-    global bullets
-    mouse_pos = pg.mouse.get_pos()
-    vmx, vmy = pg.mouse.get_pos()
-    bmx, bmy = viewport_coord_on_background(cart, vmx, vmy)
-    bmp = (bmx, bmy)
-    bbx, bby = cart.p.x, cart.p.y
-    bbx += cart.width/2 # Position bullets to come from middle of cart
-    bbp = Vec2_f(bbx, bby)
-    bbvx = bmx - bbx
-    bbvy = bmy - bby
-    bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
-    bbv = 10
-    bbvxn = bbvx/bbvh * bbv + (random()-0.5)
-    bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-    bbvn = Vec2_f(bbvxn + cart.speed, bbvyn)
-    if bullets >= 1:
-        bullets -= 1
-        Bullet(entities, bbp, bbvn)
-
 def main():
-    global images, score, bullets
+    global images
     
     pg.init()
     CursorAimer()
@@ -401,14 +401,14 @@ def main():
         # Load the entities from the master_map
         load_entities(entities, cart) 
 
-        # Initialize the cart and its bullets
+        # Initialize the cart
         cart.p = Vec2_f(0, 240)
         cart.speed += 0.25
         Bullet.max_lifespan += 2
         
         while True:
             # Slowly recharge bullets so never completely hopeless
-            bullets += 0.02
+            cart.bullets += 0.02
             
             for event in pg.event.get():
                 # Just shut it all down
@@ -432,7 +432,7 @@ def main():
                     if event.type == pg.MOUSEBUTTONUP:
                         shooting = False
                     if shooting:
-                        shoot(entities, cart)
+                        cart.shoot()
 
             # Fill in the canvas
             canvas.fill((255, 255, 255))
@@ -457,9 +457,9 @@ def main():
             screen.blit(viewport, (0, 0))
 
             # Heads up display
-            textsurface = myfont.render('dead cicadas: ' + str(score), False, (0, 0, 0))
+            textsurface = myfont.render('dead cicadas: ' + str(cart.score), False, (0, 0, 0))
             screen.blit(textsurface,(0,0))
-            textsurface = myfont.render('bullets: ' + str(int(bullets)), False, (0, 0, 0))
+            textsurface = myfont.render('bullets: ' + str(int(cart.bullets)), False, (0, 0, 0))
             screen.blit(textsurface,(400,0))
 
             # Draw it all
