@@ -6,6 +6,8 @@ import os
 import sys
 import math
 
+from cursor_aimer import CursorAimer
+
 main_dir = sys.argv[1] # run like: python3 pygame_test.py $(pwd)
 
 def get_ticks():
@@ -43,51 +45,6 @@ def load_image(file):
 
 images = {}
 
-recticle =(
-    "           X            ",
-    "           X            ",
-    "        XXXXXXXX        ",
-    "     XXX   X    XXX     ",
-    "    X      X       X    ",
-    "   X       X        X   ",
-    "   X       X        X   ",
-    "  X        X         X  ",
-    "  X        X         X  ",
-    "  X        X         X  ",
-    "XXXXXXXXXXXxXXXXXXXXXXXX",
-    "  X        X         X  ",
-    "  X        X         X  ",
-    "  X        X         X  ",
-    "  X        X         X  ",
-    "   X       X         X  ",
-    "   X       X         X  ",
-    "    X      X        X   ",
-    "     X     X        X   ",
-    "     X     X      XX    ",
-    "      XX   X    XX      ",
-    "        XXXXXXXX        ",
-    "           X            ",
-    "           X            ",
-)
-
-def TestCursor(arrow):
-    hotspot = None
-    for y, line in enumerate(arrow):
-        for x, char in enumerate(line):
-            if char in ["x", ",", "O"]:
-                hotspot = x, y
-                break
-        if hotspot is not None:
-            break
-    if hotspot is None:
-        raise Exception("No hotspot specified for cursor '%s'!" % arrow)
-    s2 = []
-    for line in arrow:
-        s2.append(line.replace("x", "X").replace(",", ".").replace("O", "o"))
-    cursor, mask = pg.cursors.compile(s2, "X", ".", "o")
-    size = len(arrow[0]), len(arrow)
-    pg.mouse.set_cursor(size, hotspot, cursor, mask)
-    
 
 chunk_list = os.listdir('chunks')
 #chunk_list = ('chunk1','chunk1','chunk1','chunk1',) # handy for debugging
@@ -425,7 +382,7 @@ def main():
 
     clock = pg.time.Clock()
 
-    TestCursor(recticle)
+    CursorAimer()
         
     canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
