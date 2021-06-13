@@ -236,6 +236,23 @@ class Bullet(Goo):
 class Cart(Entity):
     height = 30
     width = int(30 * 1.01923077)
+    cw = width
+    ch = height
+    vw = SCREENDIM[0]
+    vh = SCREENDIM[1]
+    vcx = (vw-cw)/2
+    vcy = (vh-ch)/2
+    def canvas_coord_on_viewport(self):
+        bcx, bcy = self.p.x, self.p.y
+        vbx = max(min(Cart.vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
+        vby = Cart.vcy - bcy
+        return vbx, vby
+
+    def viewport_coord_on_background(self, mx, my):
+        vbx, vby = self.canvas_coord_on_viewport()
+        bmx = mx - vbx
+        bmy = my - vby
+        return bmx, bmy
 
     def __init__(self, entities, p):
         super().__init__(entities, p)
@@ -273,7 +290,7 @@ class Cart(Entity):
     def shoot(self):
         mouse_pos = pg.mouse.get_pos()
         vmx, vmy = pg.mouse.get_pos()
-        bmx, bmy = viewport_coord_on_background(self, vmx, vmy)
+        bmx, bmy = self.viewport_coord_on_background(vmx, vmy)
         bmp = (bmx, bmy)
         bbx, bby = self.p.x, self.p.y
         bbx += self.width/2 # Position bullets to come from middle of cart
@@ -288,7 +305,7 @@ class Cart(Entity):
         if self.bullets >= 1:
             self.bullets -= 1
             Bullet(self.entities, bbp, bbvn, self)
-    
+            
 def get_ticks():
     return round(time.time() * 1000)
 
@@ -341,24 +358,6 @@ class Cicada(Entity):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
             Goo(self.entities, gp, gv)
-        
-cw = Cart.width
-ch = Cart.height
-vw = SCREENDIM[0]
-vh = SCREENDIM[1]
-vcx = (vw-cw)/2
-vcy = (vh-ch)/2
-def canvas_coord_on_viewport(cart):
-    bcx, bcy = cart.p.x, cart.p.y
-    vbx = max(min(vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
-    vby = vcy - bcy
-    return vbx, vby
-
-def viewport_coord_on_background(cart, mx, my):
-    vbx, vby = canvas_coord_on_viewport(cart)
-    bmx = mx - vbx
-    bmy = my - vby
-    return bmx, bmy
         
 def main():
     global images
@@ -451,16 +450,16 @@ def main():
             render_foreground(canvas)
             
             # Adjust the viewport to center on the cart
-            vbp = canvas_coord_on_viewport(cart)
+            vbp = cart.canvas_coord_on_viewport()
             viewport.fill((255, 255, 255))
             viewport.blit(canvas, vbp)
             screen.blit(viewport, (0, 0))
 
             # Heads up display
             textsurface = myfont.render('dead cicadas: ' + str(cart.score), False, (0, 0, 0))
-            screen.blit(textsurface,(0,0))
+            screen.blit(textsurface, (0, 0))
             textsurface = myfont.render('bullets: ' + str(int(cart.bullets)), False, (0, 0, 0))
-            screen.blit(textsurface,(400,0))
+            screen.blit(textsurface, (400, 0))
 
             # Draw it all
             pg.display.update()
