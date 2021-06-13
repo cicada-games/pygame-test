@@ -133,11 +133,15 @@ class Entity:
             self.entities.remove(self)
 
 class Particle(Entity):
+    def set_lifespan(self):
+        clz = self.__class__
+        self.lifespan = clz.max_lifespan
+
     def __init__(self, entities, p, v):
         super().__init__(entities, p)
         clz = self.__class__
         self.v = v
-        self.lifespan = clz.max_lifespan
+        self.set_lifespan()
         clz.particles += [self]
         if len(clz.particles) == clz.particles_max:
             clz.particles[0].remove()
@@ -162,19 +166,28 @@ class Particle(Entity):
         
     def draw(self, background):
         return
-        
+
+class Dust(Particle):
+    particles_max = 100
+    particles = []
+    max_lifespan = 10
+    colors = [(0,0,0), (50,50,50), (150,150,150), (250,250,250)]
+    def __init__(self, entities, p, v):
+        super().__init__(entities, p, v)
+        self.size = randint(5, 10)
+        self.color = Dust.colors[randint(0, len(Dust.colors)-1)]
+    
+    def draw(self, background):
+        angle = math.pi*2*random()
+        pg.draw.line(background, self.color, (self.p.x, self.p.y), (self.p.x+math.cos(angle)*self.size*(self.lifespan/self.max_lifespan), self.p.y+math.sin(angle)*self.size*(self.lifespan/self.max_lifespan)), 1)
+
 class Bullet(Particle):
     particles_max = 100
     particles = []
     max_lifespan = 10
-    def __init__(self, entities, p, v):
-        super().__init__(entities, p, v)
 
     def decrease_lifespan(self):
         self.lifespan -= 20
-        
-    def update_context(self):
-        return
         
     def update(self):
         super().update()
@@ -191,11 +204,16 @@ class Bullet(Particle):
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
                     entity.remove() # KILL CICADA!!
-                    self.update_context()
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
             self.decrease_lifespan()
+            for _ in range(randint(5, 10)):
+                gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+                angle = math.pi*2*random()
+                mag = 2 * random()
+                gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
+                Dust(self.entities, gp, gv)
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -212,7 +230,7 @@ class Gore(Bullet):
         
     def draw(self, background):
         decay = self.lifespan/Goo.max_lifespan
-        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay*2, 5)
         pg.draw.circle(background, (100,0,0), (self.p.x, self.p.y), random()*10*decay, 5)
         pg.draw.circle(background, (100,100,0), (self.p.x, self.p.y), random()*5*decay, 3)
         pg.draw.circle(background, (200,200,200), (self.p.x, self.p.y), random()*5*decay, 5)
@@ -222,7 +240,11 @@ score = 0
 class Goo(Bullet):
     particle_max = 1000
     particles = []
-    max_lifespan = 10
+    max_lifespan = 20
+
+    def set_lifespan(self):
+        self.lifespan = random()*self.max_lifespan
+    
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
 
@@ -232,7 +254,11 @@ class Goo(Bullet):
     def draw(self, background):
         decay = self.lifespan/Goo.max_lifespan
         pg.draw.circle(background, (200,50,0), (self.p.x, self.p.y), random()*10*decay, 5)
-        pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*10*decay, 5)
+        pg.draw.circle(background, (0,200,0), (self.p.x, self.p.y), random()*20*decay, 8)
+        pg.draw.circle(background, (0,100,0), (self.p.x, self.p.y), random()*20*decay, 8)
+        pg.draw.circle(background, (200,0,0), (self.p.x, self.p.y), random()*10*decay*2, 5)
+        pg.draw.circle(background, (0,10,0), (self.p.x, self.p.y), random()*20*decay, 8)
+        pg.draw.circle(background, (100,200,100), (self.p.x, self.p.y), random()*20*decay, 8)
         pg.draw.circle(background, (0,100,200), (self.p.x, self.p.y), random()*5*decay, 3)
         pg.draw.circle(background, (100,100,200), (self.p.x, self.p.y), random()*10*decay, 8)
             
@@ -260,7 +286,7 @@ class Cart(Entity):
     def __init__(self, entities, p):
         super().__init__(entities, p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 0.75
+        self.speed = 1.5
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
@@ -366,8 +392,8 @@ def main():
     CursorAimer()
     clock = pg.time.Clock()
         
-    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
-    screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
+    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
+    #screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
 
     canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
@@ -403,7 +429,7 @@ def main():
 
         # Initialize the cart
         cart.p = Vec2_f(0, 240)
-        cart.speed += 0.25
+        cart.speed += 0.5
         Bullet.max_lifespan += 2
         
         while True:
