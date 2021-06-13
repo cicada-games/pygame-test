@@ -190,13 +190,16 @@ class Stone:
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
             Dust(entities, gp, gv)
 
-class Bullet(Particle):
+class Projectile(Particle):
     particles_max = 100
     particles = []
     max_lifespan = 10
-
+    
     def decrease_lifespan(self):
         self.lifespan -= 20
+
+    def cicada_update_context(self):
+        return
         
     def update(self):
         super().update()
@@ -206,13 +209,14 @@ class Bullet(Particle):
         
         entities_copy = [entity for entity in self.entities]
         for entity in entities_copy:
-            if type(entity) in (Goo, Gore, Bullet):
+            if type(entity) in (Projectile,):
                 continue
             ex = int(entity.p.x/TILE_SIZE)
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
                     entity.remove() # KILL CICADA!!
+                    self.cicada_update_context()
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
@@ -222,7 +226,19 @@ class Bullet(Particle):
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
 
-class Gore(Bullet):
+class Bullet(Projectile):
+    particles_max = 100
+    particles = []
+    max_lifespan = 10
+
+    def __init__(self, entities, p, v, cart):
+        super().__init__(entities, p, v)
+        self.cart = cart
+
+    def cicada_update_context(self):
+        self.cart.bullets += 4
+        
+class Gore(Projectile):
     particles_max = 100
     particles = []
     max_lifespan = 50
@@ -240,7 +256,7 @@ class Gore(Bullet):
         pg.draw.circle(background, (200,200,200), (self.p.x, self.p.y), random()*5*decay, 5)
         pg.draw.circle(background, (50,0,0), (self.p.x, self.p.y), random()*10*decay, 8)
 
-class Goo(Bullet):
+class Goo(Projectile):
     particle_max = 1000
     particles = []
     max_lifespan = 20
@@ -337,7 +353,7 @@ class Cart(Entity):
         bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
             self.bullets -= 1
-            Bullet(self.entities, bbp, bbvn)
+            Bullet(self.entities, bbp, bbvn, self)
             
 def get_ticks():
     return round(time.time() * 1000)
@@ -385,7 +401,6 @@ class Cicada(Entity):
         super().remove()
         
         self.cart.score += 1
-        self.cart.bullets += 8
 
         self.kablooie()
 
