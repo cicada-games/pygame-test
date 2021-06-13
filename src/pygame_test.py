@@ -364,8 +364,14 @@ def main():
     global images, score, bullets
     
     pg.init()
+    CursorAimer()
+    clock = pg.time.Clock()
+        
     #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
     screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
+
+    canvas = pg.Surface(CANVASRECT.size)
+    viewport = pg.Surface(SCREENRECT.size)
 
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
@@ -373,13 +379,6 @@ def main():
     for image_filename in os.listdir('images'):
         image_name = image_filename.split('.')[0]
         images[image_name] = load_image(image_filename)
-
-    clock = pg.time.Clock()
-
-    CursorAimer()
-        
-    canvas = pg.Surface(CANVASRECT.size)
-    viewport = pg.Surface(SCREENRECT.size)
 
     grass = images['grass']
     def render_foreground(canvas):
@@ -389,12 +388,12 @@ def main():
         
     stone = pg.transform.scale(images['stone'], (20, 20))
     
-    shooting = False
-    dead = False
     entities = []
-
     cart = Cart(entities, Vec2_f(0, 240))
         
+    shooting = False
+    dead = False
+
     while not dead:
         # Create the master_map
         load_chunks()
