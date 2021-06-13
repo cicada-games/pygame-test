@@ -227,13 +227,16 @@ class Goo(Particle):
     def decrease_lifespan(self):
         self.lifespan -= 1000
         
+    def update_context(self):
+        global score
+        score += 1
+        
     def update(self):
         super().update()
         
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
         
-        global score
         entities_copy = [entity for entity in self.entities]
         for entity in entities_copy:
             if type(entity) in (Goo, Gore, Bullet):
@@ -243,7 +246,7 @@ class Goo(Particle):
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
                     entity.remove() # KILL CICADA!!
-                    score += 1
+                    self.update_context()
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             master_map[ty][tx] = ' ' # Destructible terrain
@@ -275,51 +278,18 @@ class Gore(Goo):
         pg.draw.circle(background, (50,0,0), (self.p.x, self.p.y), random()*10*decay, 8)
             
 score = 0
-class Bullet(Entity):
-    bullets_max = 100
-    bullets = []
+class Bullet(Goo):
+    particle_max = 100
+    particles = []
     max_lifespan = 10
     def __init__(self, entities, p, v):
-        super().__init__(entities, p)
-        self.v = v
-        self.lifespan = Bullet.max_lifespan
-        Bullet.bullets += [self]
-        if len(Bullet.bullets) == Bullet.bullets_max:
-            old_bullet = Bullet.bullets[0]
-            Bullet.bullets.remove(old_bullet)
-            if old_bullet in self.entities:
-                self.entities.remove(old_bullet)
+        super().__init__(entities, p, v)
 
-    def update(self):
+    def update_context(self):
         global score, bullets
-        self.lifespan -= 1
-        if self.lifespan < 0:
-            self.entities.remove(self)
-
-        px, py = self.p.x, self.p.y
-        vx, vy = self.v
-        px += vx
-        py += vy
-        self.p = Vec2_f(px, py)
-
-        tx = int(px/TILE_SIZE)
-        ty = int(py/TILE_SIZE)
-        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
-            master_map[ty][tx] = ' ' # Destructible terrain
-            self.lifespan -= 10
-
-        entities_copy = [entity for entity in self.entities]
-        for entity in entities_copy:
-            if type(entity) in (Cart, Bullet):
-                continue
-            ex = int(entity.p.x/TILE_SIZE)
-            ey = int(entity.p.y/TILE_SIZE)
-            if tx == ex and ty == ey:
-                if type(entity) is Cicada:
-                    entity.remove() # KILL CICADA!!
-                    score += 1
-                    bullets += 8
-        
+        score += 1
+        bullets += 8
+                
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
 
