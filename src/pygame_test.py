@@ -229,10 +229,6 @@ class Goo(Entity):
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
-                    for _ in range(randint(0, 50)):
-                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
-                        gv = (random()-0.5)*3, (random()-0.5)*3
-                        Goo(self.entities, gp, gv)
                     entity.remove() # KILL CICADA!!
                     score += 1
                     
@@ -287,10 +283,6 @@ class Gore(Entity):
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
-                    for _ in range(randint(0, 50)):
-                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
-                        gv = (random()-0.5)*3, (random()-0.5)*3
-                        Goo(self.entities, gp, gv)
                     entity.remove() # KILL CICADA!!
                     score += 1
                     
@@ -348,10 +340,6 @@ class Bullet(Entity):
             ey = int(entity.p.y/TILE_SIZE)
             if tx == ex and ty == ey:
                 if type(entity) is Cicada:
-                    for _ in range(randint(0, 50)):
-                        gp = Vec2_f(entity.p.x+TILE_SIZE/2, entity.p.y+TILE_SIZE/2)
-                        gv = (random()-0.5)*3, (random()-0.5)*3
-                        Goo(self.entities, gp, gv)
                     entity.remove() # KILL CICADA!!
                     score += 1
                     bullets += 8
@@ -385,6 +373,15 @@ class Cart(Entity):
     def draw(self, background):
         background.blit(self.sprite, (self.p.x, self.p.y))
 
+    def remove(self):
+        super().remove()
+        for _ in range(randint(100, 300)):
+            gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+            angle = math.pi*2*random()
+            mag = 5 * random()
+            gv = math.cos(angle)*mag, math.sin(angle)*mag
+            Gore(self.entities, gp, gv)
+
 class Cicada(Entity):
     sprite = None
     size = None
@@ -414,19 +411,19 @@ class Cicada(Entity):
         cx = int(self.cart.p.x/TILE_SIZE)
         cy = int(self.cart.p.y/TILE_SIZE)
         if tx == cx and ty == cy:
-            if self.cart in self.entities:
-                self.entities.remove(self.cart)
-                for _ in range(randint(100, 300)):
-                    gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
-                    angle = math.pi*2*random()
-                    mag = 5 * random()
-                    gv = math.cos(angle)*mag, math.sin(angle)*mag
-                    Gore(self.entities, gp, gv)
+            self.cart.remove()
             
     def draw(self, background):
         result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
         rect = result.get_rect(center = self.sprite.get_rect(topleft = (self.p.x, self.p.y)).center) # render from the center
-        background.blit(result, rect)   
+        background.blit(result, rect)
+
+    def remove(self):
+        super().remove()
+        for _ in range(randint(0, 50)):
+            gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+            gv = (random()-0.5)*3, (random()-0.5)*3
+            Goo(self.entities, gp, gv)
         
 cw = Cart.width
 ch = Cart.height
@@ -450,8 +447,8 @@ def main():
     global images, score, bullets
     
     pg.init()
-    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24)
-    #screen = pg.display.set_mode(SCREENDIM, 0, 24)
+    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
+    screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
 
     pg.font.init()
     myfont = pg.font.SysFont('Times New Roman', 14)
