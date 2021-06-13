@@ -226,9 +226,8 @@ class Bullet(Goo):
     particle_max = 100
     particles = []
     max_lifespan = 10
-    def __init__(self, entities, p, v, cart):
+    def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
-        self.cart = cart
 
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -304,7 +303,7 @@ class Cart(Entity):
         bbvn = Vec2_f(bbvxn + self.speed, bbvyn)
         if self.bullets >= 1:
             self.bullets -= 1
-            Bullet(self.entities, bbp, bbvn, self)
+            Bullet(self.entities, bbp, bbvn)
             
 def get_ticks():
     return round(time.time() * 1000)
