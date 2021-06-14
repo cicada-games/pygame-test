@@ -306,7 +306,7 @@ class Cart(Entity):
     def __init__(self, entities, p):
         super().__init__(entities, p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 1.5
+        self.speed = 1
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
@@ -509,6 +509,10 @@ def main():
             screen.blit(textsurface, (0, 0))
             textsurface = myfont.render('bullets: ' + str(int(cart.bullets)), False, (0, 0, 0))
             screen.blit(textsurface, (400, 0))
+            textsurface = myfont.render('mouse button: single fire        spacebar: spray and pray        ESC: exit', False, (0, 0, 0))
+            screen.blit(textsurface, (100, 15))
+            textsurface = myfont.render('***WARNING*** NEVER, EVER PRESS S', False, (0, 0, 0))
+            screen.blit(textsurface, (180, 30))
 
             # Draw it all
             pg.display.update()
