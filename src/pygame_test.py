@@ -441,7 +441,8 @@ def main():
     stone = pg.transform.scale(images['stone'], (20, 20))
     
     entities = []
-    cart = Cart(entities, Vec2_f(0, 240))
+    cart_start = Vec2_f(0, 230)
+    cart = Cart(entities, Vec2_f(cart_start.x, cart_start.y))
         
     fullauto = False
     dead = False
@@ -454,7 +455,7 @@ def main():
         load_entities(entities, cart) 
 
         # Initialize the cart
-        cart.p = Vec2_f(0, 240)
+        cart.p = Vec2_f(cart_start.x, cart_start.y)
         cart.speed += 0.5
         Bullet.max_lifespan += 2
         
@@ -489,7 +490,7 @@ def main():
             render_master_map(canvas, stone)
 
             # Draw the cart track
-            pg.draw.line(canvas, (100, 30, 20), (0, 270), (CANVASDIM[0], 270), 2) 
+            pg.draw.line(canvas, (100, 30, 20), (0, 260), (CANVASDIM[0], 260), 2) 
 
             # Draw the dynamic entities
             for e in entities:
