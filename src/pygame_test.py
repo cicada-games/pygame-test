@@ -389,8 +389,9 @@ class Cicada(Entity):
         ty = int(self.p.y/TILE_SIZE)
         cx = int(self.cart.p.x/TILE_SIZE)
         cy = int(self.cart.p.y/TILE_SIZE)
-        if tx == cx and -1 < ty - cy < 2:
-            self.cart.remove()
+        if tx == cx and -1 <= ty - cy < 2:
+            if self.cart in self.entities:
+                self.cart.remove()
             
     def draw(self, background):
         result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
