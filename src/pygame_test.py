@@ -220,7 +220,7 @@ class Projectile(Particle):
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
             self.decrease_lifespan()
-            if self.lifespan > 0 or random() < 0.01:
+            if self.lifespan > 0 or random() < 0.03:
                 master_map[ty][tx] = ' ' # Destructible terrain
                 Stone.kablooie(self.entities, self.p)
         
