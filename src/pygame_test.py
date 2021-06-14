@@ -315,7 +315,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty][tx] == '#':
+        if tx < len(master_map[0]) and ty < len(master_map) and (master_map[ty][tx] == '#' or master_map[ty+1][tx] == '#'):
             self.remove()
                     
     def draw(self, background):
@@ -332,7 +332,6 @@ class Cart(Entity):
             mag = 5 * random()
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
             Gore(self.entities, gp, gv)
-        
         
     def shoot(self):
         mouse_pos = pg.mouse.get_pos()
