@@ -219,9 +219,10 @@ class Projectile(Particle):
                     self.cicada_update_context()
                     
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
-            master_map[ty][tx] = ' ' # Destructible terrain
             self.decrease_lifespan()
-            Stone.kablooie(self.entities, self.p)
+            if self.lifespan > 0:
+                master_map[ty][tx] = ' ' # Destructible terrain
+                Stone.kablooie(self.entities, self.p)
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -442,7 +443,7 @@ def main():
     entities = []
     cart = Cart(entities, Vec2_f(0, 240))
         
-    shooting = False
+    fullauto = False
     dead = False
 
     while not dead:
@@ -473,14 +474,12 @@ def main():
                     if event.type == pg.KEYDOWN and event.key == pg.K_s:
                         cart.remove()
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                        shooting = True
+                        fullauto = True
                     if event.type == pg.KEYUP and event.key == pg.K_SPACE:
-                        shooting = False
+                        fullauto = False
+                    if fullauto:
+                        cart.shoot()
                     if event.type == pg.MOUSEBUTTONDOWN:
-                        shooting = True
-                    if event.type == pg.MOUSEBUTTONUP:
-                        shooting = False
-                    if shooting:
                         cart.shoot()
 
             # Fill in the canvas
