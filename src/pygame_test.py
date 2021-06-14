@@ -315,7 +315,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if tx < len(master_map[0]) and ty < len(master_map) and (master_map[ty][tx] == '#' or master_map[ty+1][tx] == '#'):
+        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty+1][tx] == '#':
             self.remove()
                     
     def draw(self, background):
