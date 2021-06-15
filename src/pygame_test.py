@@ -332,9 +332,9 @@ class Cicada(Entity):
         self.last_twitch = Cicada.get_ticks()
 
     def update(self):
-        if(get_ticks()-self.last_twitch > self.twitch_timeout):
+        if(Cicada.get_ticks()-self.last_twitch > self.twitch_timeout):
             self.angle = randint(-45, 45)
-            self.last_twitch = get_ticks()
+            self.last_twitch = Cicada.get_ticks()
 
         self.nangle = Cicada.lerp(self.nangle, self.angle, 0.05)
 
