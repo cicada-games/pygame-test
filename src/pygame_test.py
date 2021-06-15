@@ -171,7 +171,7 @@ class Dust(Particle):
     particles_max = 100
     particles = []
     max_lifespan = 10
-    colors = [(0,0,0), (50,50,50), (150,150,150), (250,250,250)]
+    colors = [(50,50,50), (100,100,100), (150,150,150), (200,200,200)]
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
         self.size = randint(5, 10)
@@ -182,7 +182,7 @@ class Dust(Particle):
         expansion = self.size*self.lifespan/self.max_lifespan
         end_x = self.p.x+math.cos(angle)*expansion
         end_y = self.p.y+math.sin(angle)*expansion
-        pg.draw.line(background, self.color, (self.p.x, self.p.y), (end_x, end_y), 1)
+        pg.draw.line(background, self.color, (self.p.x, self.p.y), (end_x, end_y), 5)
 
 class Stone:
     def kablooie(entities, p):
