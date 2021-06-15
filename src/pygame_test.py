@@ -179,7 +179,10 @@ class Dust(Particle):
     
     def draw(self, background):
         angle = math.pi*2*random()
-        pg.draw.line(background, self.color, (self.p.x, self.p.y), (self.p.x+math.cos(angle)*self.size*(self.lifespan/self.max_lifespan), self.p.y+math.sin(angle)*self.size*(self.lifespan/self.max_lifespan)), 1)
+        expansion = self.size*self.lifespan/self.max_lifespan
+        end_x = self.p.x+math.cos(angle)*expansion
+        end_y = self.p.y+math.sin(angle)*expansion
+        pg.draw.line(background, self.color, (self.p.x, self.p.y), (end_x, end_y), 1)
 
 class Stone:
     def kablooie(entities, p):
@@ -291,6 +294,7 @@ class Cart(Entity):
     vh = SCREENDIM[1]
     vcx = (vw-cw)/2
     vcy = (vh-ch)/2
+    max_lifespan = 100
     def canvas_coord_on_viewport(self):
         bcx, bcy = self.p.x, self.p.y
         vbx = max(min(Cart.vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
