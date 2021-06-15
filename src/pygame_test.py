@@ -112,6 +112,10 @@ class Vec2_f:
         self.y = y
 
 # Base class, fyi
+# An important thing to note about the Entity class, and its
+# subclasses, is that it maintains the list of entities.  Objects
+# themselves to the list when created, and remove themselves when
+# destroyed.
 class Entity:
     def __init__(self, entities, p):
         self.entities = entities
