@@ -242,7 +242,7 @@ class Projectile(Particle):
 class Bullet(Projectile):
     particles_max = 100
     particles = []
-    max_lifespan = 100
+    max_lifespan = 10
 
     def __init__(self, entities, p, v, cart):
         super().__init__(entities, p, v)
