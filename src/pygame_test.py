@@ -221,11 +221,12 @@ class Projectile(Particle):
                     entity.remove() # KILL CICADA!!
                     self.cicada_update_context()
                     
-        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]) and master_map[ty][tx] == '#':
-            self.decrease_lifespan()
-            if self.lifespan > 0 or random() < 0.03:
-                master_map[ty][tx] = ' ' # Destructible terrain
-                Stone.kablooie(self.entities, self.p)
+        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]): # Prevent out of bounds errors
+            if master_map[ty][tx] == '#':
+                self.decrease_lifespan()
+                if self.lifespan > 0 or random() < 0.03:
+                    master_map[ty][tx] = ' ' # Destructible terrain
+                    Stone.kablooie(self.entities, self.p)
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -436,6 +437,12 @@ def main():
         image_name = image_filename.split('.')[0]
         images[image_name] = load_image(image_filename)
 
+    mountains = images['mountains']
+    def render_background(canvas, cart):
+        vbx, vby = cart.canvas_coord_on_viewport()
+        px = -vbx/1.5
+        canvas.blit(mountains, (px, 0))
+        
     grass = images['grass']
     def render_foreground(canvas):
         canvas.blit(grass, (SCREENDIM[0]*0 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
@@ -490,6 +497,9 @@ def main():
             # Fill in the canvas
             canvas.fill((255, 255, 255))
 
+            # Draw the background in parallax
+            render_background(canvas, cart)
+            
             # Draw the static parts of level
             render_master_map(canvas, stone)
 
