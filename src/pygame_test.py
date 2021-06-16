@@ -179,11 +179,11 @@ class Particle(Entity):
 class Dust(Particle):
     particles_max = 100
     particles = []
-    max_lifespan = 10
+    max_lifespan = 100
     colors = [(50,50,50), (100,100,100), (150,150,150), (200,200,200)]
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
-        self.size = randint(5, 10)
+        self.size = randint(1, 10)
         self.color = Dust.colors[randint(0, len(Dust.colors)-1)]
     
     def draw(self, background):
@@ -246,7 +246,7 @@ class Projectile(Particle):
 class Bullet(Projectile):
     particles_max = 100
     particles = []
-    max_lifespan = 10
+    max_lifespan = 100
 
     def __init__(self, entities, p, v, cart):
         super().__init__(entities, p, v)
