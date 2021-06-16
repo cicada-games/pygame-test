@@ -183,9 +183,13 @@ class Dust(Particle):
     colors = [(50,50,50), (100,100,100), (150,150,150), (200,200,200)]
     def __init__(self, entities, p, v):
         super().__init__(entities, p, v)
-        self.size = randint(1, 10)
+        self.size = randint(1, 3)
         self.color = Dust.colors[randint(0, len(Dust.colors)-1)]
-    
+
+    def move(self):
+        super().move()
+        self.v.y += 0.1
+        
     def draw(self, background):
         angle = math.pi*2*random()
         expansion = self.size*self.lifespan/self.max_lifespan
