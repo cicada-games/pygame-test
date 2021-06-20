@@ -82,7 +82,7 @@ def load_entities(entities, cart):
             y = row * TILE_SIZE
             p = Vec2_f(x, y)
             if c == 'C':
-                Cicada(entities, p, cart)
+                Cicada(p, cart)
                 
 def render_master_map( background, tile ):
     MAX_COLS = 40
@@ -117,9 +117,9 @@ class Vec2_f:
 # themselves to the list when created, and remove themselves when
 # destroyed.
 class Entity:
-    def __init__(self, entities, p):
-        self.entities = entities
-        self.entities += [self]
+    entities = []
+    def __init__(self, p):
+        Entity.entities += [self]
         self.solid = True
         self.p = p
 
@@ -130,8 +130,8 @@ class Entity:
         return
 
     def remove(self):
-        if self in self.entities:
-            self.entities.remove(self)
+        if self in Entity.entities:
+            Entity.entities.remove(self)
 
 # All particles have a limited lifespan and a velocity.
 # There is some introspection trickery here because each particle type
@@ -145,8 +145,8 @@ class Particle(Entity):
         clz = self.__class__
         self.lifespan = clz.max_lifespan
 
-    def __init__(self, entities, p, v):
-        super().__init__(entities, p)
+    def __init__(self, p, v):
+        super().__init__(p)
         clz = self.__class__
         self.v = v
         self.set_lifespan()
@@ -181,8 +181,8 @@ class Dust(Particle):
     particles = []
     max_lifespan = 100
     colors = [(50,50,50), (100,100,100), (150,150,150), (200,200,200)]
-    def __init__(self, entities, p, v):
-        super().__init__(entities, p, v)
+    def __init__(self, p, v):
+        super().__init__(p, v)
         self.size = randint(1, 3)
         self.color = Dust.colors[randint(0, len(Dust.colors)-1)]
 
@@ -199,13 +199,13 @@ class Dust(Particle):
 
 # Generates the dust cloud        
 class Stone:
-    def kablooie(entities, p):
+    def kablooie(p):
         for _ in range(randint(5, 10)):
             gp = Vec2_f(p.x+TILE_SIZE/2, p.y+TILE_SIZE/2)
             angle = math.pi*2*random()
             mag = 2 * random()
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
-            Dust(entities, gp, gv)
+            Dust(gp, gv)
 
 # Projectiles are particles that impact the surroundings            
 class Projectile(Particle):
@@ -226,7 +226,7 @@ class Projectile(Particle):
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
         
-        entities_copy = [entity for entity in self.entities]
+        entities_copy = [entity for entity in Entity.entities]
         for entity in entities_copy:
             if type(entity) in (Projectile,):
                 continue
@@ -242,7 +242,7 @@ class Projectile(Particle):
                 self.decrease_lifespan()
                 if self.lifespan > 0 or random() < 0.03:
                     master_map[ty][tx] = ' ' # Destructible terrain
-                    Stone.kablooie(self.entities, self.p)
+                    Stone.kablooie(self.p)
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -252,8 +252,8 @@ class Bullet(Projectile):
     particles = []
     max_lifespan = 100
 
-    def __init__(self, entities, p, v, cart):
-        super().__init__(entities, p, v)
+    def __init__(self, p, v, cart):
+        super().__init__(p, v)
         self.cart = cart
 
     # Special callout function, it's a bit weird, but neatens the code
@@ -271,8 +271,8 @@ class Gore(Projectile):
     particles_max = 100
     particles = []
     max_lifespan = 50
-    def __init__(self, entities, p, v):
-        super().__init__(entities, p, v)
+    def __init__(self, p, v):
+        super().__init__(p, v)
 
     def decrease_lifespan(self):
         self.lifespan -= random()*25
@@ -294,8 +294,8 @@ class Goo(Projectile):
     def set_lifespan(self):
         self.lifespan = random()*self.max_lifespan
     
-    def __init__(self, entities, p, v):
-        super().__init__(entities, p, v)
+    def __init__(self, p, v):
+        super().__init__(p, v)
 
     def decrease_lifespan(self):
         self.lifespan -= 1000
@@ -334,8 +334,8 @@ class Cicada(Entity):
 
     # Then follows the update logic.
     
-    def __init__(self, entities, p, cart):
-        super().__init__(entities, p)
+    def __init__(self, p, cart):
+        super().__init__(p)
         self.cart = cart
         self.angle = randint(-45, 45)
         cicada_height = 65
@@ -355,7 +355,7 @@ class Cicada(Entity):
         cx = int(self.cart.p.x/TILE_SIZE)
         cy = int(self.cart.p.y/TILE_SIZE)
         if tx == cx and -1 <= ty - cy < 2:
-            if self.cart in self.entities:
+            if self.cart in Entity.entities:
                 self.cart.remove()
             
     def draw(self, background):
@@ -374,7 +374,7 @@ class Cicada(Entity):
         for _ in range(randint(0, 50)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
-            Goo(self.entities, gp, gv)
+            Goo(gp, gv)
 
             
 # ****
@@ -413,8 +413,8 @@ class Cart(Entity):
     # 1. Move the cart forward
     # 2. Fire bullets
     
-    def __init__(self, entities, p):
-        super().__init__(entities, p)
+    def __init__(self, p):
+        super().__init__(p)
         self.velocity = Vec2_f(1, 0)
         self.speed = 1
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
@@ -441,7 +441,7 @@ class Cart(Entity):
             angle = math.pi*2*random()
             mag = 5 * random()
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
-            Gore(self.entities, gp, gv)
+            Gore(gp, gv)
         
     def shoot(self):
         mouse_pos = pg.mouse.get_pos()
@@ -463,7 +463,7 @@ class Cart(Entity):
         bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
             self.bullets -= 1
-            Bullet(self.entities, bbp, bbvn, self)
+            Bullet(bbp, bbvn, self)
 
 
             
@@ -497,8 +497,8 @@ def main():
     CursorAimer()
     clock = pg.time.Clock()
         
-    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
-    #screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
+    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
+    screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
 
     canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
@@ -525,9 +525,8 @@ def main():
         
     stone = pg.transform.scale(images['stone'], (20, 20))
     
-    entities = []
     cart_start = Vec2_f(0, 230)
-    cart = Cart(entities, Vec2_f(cart_start.x, cart_start.y))
+    cart = Cart(Vec2_f(cart_start.x, cart_start.y))
         
     fullauto = False
     dead = False
@@ -537,7 +536,7 @@ def main():
         load_chunks()
 
         # Load the entities from the master_map
-        load_entities(entities, cart) 
+        load_entities(Entity.entities, cart) 
 
         # Initialize the cart
         cart.p = Vec2_f(cart_start.x, cart_start.y)
@@ -556,7 +555,7 @@ def main():
                     return
                 
                 # Game loop may still be running when cart is dead, so don't process input.
-                if cart in entities: 
+                if cart in Entity.entities: 
                     if event.type == pg.KEYDOWN and event.key == pg.K_s:
                         cart.remove()
                     if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
@@ -581,7 +580,7 @@ def main():
             pg.draw.line(canvas, (100, 30, 20), (0, 260), (CANVASDIM[0], 260), 2) 
 
             # Draw the dynamic entities
-            for e in entities:
+            for e in Entity.entities:
                 e.draw(canvas)
 
             # Draw anything in the foreground
@@ -607,11 +606,11 @@ def main():
             pg.display.update()
     
             # Update the dynamic entities
-            entities_copy = [entity for entity in entities]
+            entities_copy = [entity for entity in Entity.entities]
             for e in entities_copy: # Copy necessary b/c destructive of entities list
                 e.update()
     
-            if not cart in entities:
+            if not cart in Entity.entities:
                 if len(Gore.particles) == 0 and len(Goo.particles) == 0:
                     dead = True
                     break # Cart was killed
