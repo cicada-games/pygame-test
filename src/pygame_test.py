@@ -48,7 +48,12 @@ def load_chunk(filename):
                 break
             if col >= MAX_COLS :
                 break
-            chunk_tilemap[ row ][ col ] = c
+            x = col * TILE_SIZE
+            y = row * TILE_SIZE
+            if c == '#':
+                chunk_tilemap[ row ][ col ] = Stone(Vec2_i(x, y))
+            if c == 'C':
+                Cicada(Vec2_f(x, y))
             col+=1
         col = 0
         row += 1
@@ -74,23 +79,12 @@ def load_chunks():
             else:
                 master_map[i] += line
 
-def load_entities(entities, cart):
-    global master_map
-    for row, line in enumerate(master_map):
-        for col, c in enumerate(line):
-            x = col * TILE_SIZE
-            y = row * TILE_SIZE
-            p = Vec2_f(x, y)
-            if c == 'C':
-                Cicada(p, cart)
-                
-def render_master_map( background, tile ):
+def render_master_map( background ):
     MAX_COLS = 40
     for row_num, row_arr in enumerate(master_map):
         for col_num, val in enumerate( row_arr ):
-            if( val == '#'):
-                dest_tile_tect = pg.Rect(col_num * TILE_SIZE, row_num * TILE_SIZE, TILE_SIZE, TILE_SIZE )
-                background.blit(tile, dest_tile_tect )
+            if Tile in type(val).__mro__:
+                val.draw(background)
 
 # ============
 # Entity logic
@@ -102,10 +96,18 @@ CANVASRECT = pg.Rect(0, 0, CANVASDIM[0], CANVASDIM[1])
 SCREENDIM = 640, 480
 SCREENRECT = pg.Rect(0, 0, SCREENDIM[0], SCREENDIM[1])
 
-# All coordinate type data uses this class.
+# All coordinate type data uses one of these classes.
 class Vec2_f: 
     x = 0.0
     y = 0.0
+
+    def __init__( self, x, y ):
+        self.x = x 
+        self.y = y
+
+class Vec2_i: 
+    x = 0
+    y = 0
 
     def __init__( self, x, y ):
         self.x = x 
@@ -132,6 +134,28 @@ class Entity:
     def remove(self):
         if self in Entity.entities:
             Entity.entities.remove(self)
+
+# Tile entities have a different render system.
+class Tile(Entity):
+    master_map = None
+    def remove(self):
+        super().remove()
+        mmx = int(self.p.x/TILE_SIZE)
+        mmy = int(self.p.y/TILE_SIZE)
+        master_map[mmy][mmx] = None
+
+class Stone(Entity):
+    def remove(self):
+        super().remove()
+        self.kablooie()
+        
+    def kablooie(self):
+        for _ in range(randint(5, 10)):
+            gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
+            angle = math.pi*2*random()
+            mag = 2 * random()
+            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
+            Dust(gp, gv)
 
 # All particles have a limited lifespan and a velocity.
 # There is some introspection trickery here because each particle type
@@ -197,16 +221,6 @@ class Dust(Particle):
         end_y = self.p.y+math.sin(angle)*expansion
         pg.draw.line(background, self.color, (self.p.x, self.p.y), (end_x, end_y), 5)
 
-# Generates the dust cloud        
-class Stone:
-    def kablooie(p):
-        for _ in range(randint(5, 10)):
-            gp = Vec2_f(p.x+TILE_SIZE/2, p.y+TILE_SIZE/2)
-            angle = math.pi*2*random()
-            mag = 2 * random()
-            gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
-            Dust(gp, gv)
-
 # Projectiles are particles that impact the surroundings            
 class Projectile(Particle):
     particles_max = 100
@@ -238,11 +252,10 @@ class Projectile(Particle):
                     self.cicada_update_context()
 
         if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]): # Prevent out of bounds errors
-            if master_map[ty][tx] == '#':
+            if type(master_map[ty][tx]) == Stone:
                 self.decrease_lifespan()
                 if self.lifespan > 0 or random() < 0.03:
-                    master_map[ty][tx] = ' ' # Destructible terrain
-                    Stone.kablooie(self.p)
+                    master_map[ty][tx].remove() # Destructible terrain
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -315,7 +328,7 @@ class Goo(Projectile):
 # Cicada
 # ******
 # The cicada!
-class Cicada(Entity):
+class Cicada(Tile):
 
     # First are the parameters and utilities for the cicada twitch animation.
     
@@ -333,10 +346,11 @@ class Cicada(Entity):
         return (1-amt)*start+amt*end
 
     # Then follows the update logic.
+
+    cart = None 
     
-    def __init__(self, p, cart):
+    def __init__(self, p):
         super().__init__(p)
-        self.cart = cart
         self.angle = randint(-45, 45)
         cicada_height = 65
         self.size = (int(cicada_height * 0.568421053), cicada_height)
@@ -352,11 +366,11 @@ class Cicada(Entity):
 
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        cx = int(self.cart.p.x/TILE_SIZE)
-        cy = int(self.cart.p.y/TILE_SIZE)
+        cx = int(Cicada.cart.p.x/TILE_SIZE)
+        cy = int(Cicada.cart.p.y/TILE_SIZE)
         if tx == cx and -1 <= ty - cy < 2:
-            if self.cart in Entity.entities:
-                self.cart.remove()
+            if Cicada.cart in Entity.entities:
+                Cicada.cart.remove()
             
     def draw(self, background):
         result = pg.transform.rotate(self.sprite, self.nangle) # apply some on the fly transformations
@@ -367,7 +381,7 @@ class Cicada(Entity):
     # of exploding each other.
     def remove(self):
         super().remove()
-        self.cart.score += 1
+        Cicada.cart.score += 1
         self.kablooie()
 
     def kablooie(self):
@@ -425,7 +439,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if tx < len(master_map[0]) and ty < len(master_map) and master_map[ty+1][tx] == '#':
+        if tx < len(master_map[0]) and ty < len(master_map) and type(master_map[ty+1][tx]) == Stone:
             self.remove()
                     
     def draw(self, background):
@@ -527,6 +541,7 @@ def main():
     
     cart_start = Vec2_f(0, 230)
     cart = Cart(Vec2_f(cart_start.x, cart_start.y))
+    Cicada.cart = cart
         
     fullauto = False
     dead = False
@@ -534,9 +549,6 @@ def main():
     while not dead:
         # Create the master_map
         load_chunks()
-
-        # Load the entities from the master_map
-        load_entities(Entity.entities, cart) 
 
         # Initialize the cart
         cart.p = Vec2_f(cart_start.x, cart_start.y)
@@ -574,14 +586,15 @@ def main():
             render_background(canvas, cart)
             
             # Draw the static parts of level
-            render_master_map(canvas, stone)
+            render_master_map(canvas)
 
             # Draw the cart track
             pg.draw.line(canvas, (100, 30, 20), (0, 260), (CANVASDIM[0], 260), 2) 
 
             # Draw the dynamic entities
             for e in Entity.entities:
-                e.draw(canvas)
+                if not Tile in type(e).__mro__:
+                    e.draw(canvas)
 
             # Draw anything in the foreground
             render_foreground(canvas)
