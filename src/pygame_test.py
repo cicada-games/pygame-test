@@ -21,10 +21,6 @@ chunks = []
 num_chunks = 0
 current_chunk_idx = 0
 
-# The master map is assembled from the chunk sequence, to avoid the need for calculating offsets.
-master_map = []
-
-
 MAX_COLS = 40
 MAX_ROWS = 30 
 TILE_SIZE = 20
@@ -70,18 +66,17 @@ def load_chunks():
     for chunk_filename in sample(chunk_list, chunks_max):
         load_chunk( 'chunks/' + chunk_filename )
 
-    global master_map
-    master_map.clear()
+    Tile.master_map.clear()
     for chunk in chunks:
         for i, line in enumerate(chunk):
-            if len(master_map) <= i:
-                master_map += [line]
+            if len(Tile.master_map) <= i:
+                Tile.master_map += [line]
             else:
-                master_map[i] += line
+                Tile.master_map[i] += line
 
 def render_master_map( background ):
     MAX_COLS = 40
-    for row_num, row_arr in enumerate(master_map):
+    for row_num, row_arr in enumerate(Tile.master_map):
         for col_num, val in enumerate( row_arr ):
             if Tile in type(val).__mro__:
                 val.draw(background)
@@ -137,12 +132,13 @@ class Entity:
 
 # Tile entities have a different render system.
 class Tile(Entity):
-    master_map = None
+    # The master map is assembled from the chunk sequence, to avoid the need for calculating offsets.
+    master_map = []
     def remove(self):
         super().remove()
         mmx = int(self.p.x/TILE_SIZE)
         mmy = int(self.p.y/TILE_SIZE)
-        master_map[mmy][mmx] = None
+        Tile.master_map[mmy][mmx] = None
 
 class Stone(Entity):
     def remove(self):
@@ -156,6 +152,10 @@ class Stone(Entity):
             mag = 2 * random()
             gv = Vec2_f(math.cos(angle)*mag, math.sin(angle)*mag)
             Dust(gp, gv)
+
+    def draw(self, background):
+        dest_tile_rect = pg.Rect(self.p.x, self.p.y, TILE_SIZE, TILE_SIZE )
+        background.blit(images['stone'], dest_tile_rect )
 
 # All particles have a limited lifespan and a velocity.
 # There is some introspection trickery here because each particle type
@@ -251,11 +251,11 @@ class Projectile(Particle):
                     entity.remove() # KILL CICADA!!
                     self.cicada_update_context()
 
-        if 0 <= ty < len(master_map) and 0 <= tx < len(master_map[ty]): # Prevent out of bounds errors
-            if type(master_map[ty][tx]) == Stone:
+        if 0 <= ty < len(Tile.master_map) and 0 <= tx < len(Tile.master_map[ty]): # Prevent out of bounds errors
+            if type(Tile.master_map[ty][tx]) == Stone:
                 self.decrease_lifespan()
                 if self.lifespan > 0 or random() < 0.03:
-                    master_map[ty][tx].remove() # Destructible terrain
+                    Tile.master_map[ty][tx].remove() # Destructible terrain
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -439,7 +439,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if tx < len(master_map[0]) and ty < len(master_map) and type(master_map[ty+1][tx]) == Stone:
+        if tx < len(Tile.master_map[0]) and ty < len(Tile.master_map) and type(Tile.master_map[ty+1][tx]) == Stone:
             self.remove()
                     
     def draw(self, background):
