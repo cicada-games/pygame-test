@@ -17,22 +17,14 @@ main_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 chunk_list = os.listdir('chunks')
 #chunk_list = ('chunk1','chunk1','chunk1','chunk1',) # handy for debugging
 chunks_max = 3
-chunks = []
-num_chunks = 0
-current_chunk_idx = 0
 
 MAX_COLS = 40
 MAX_ROWS = 30 
 TILE_SIZE = 20
 
-def load_chunk(filename):
-    """ loads a chunk and adds it to global list of chunks
+def load_chunk(i, filename):
+    """ loads a chunk and adds its entities to global tilemap
     """
-    chunk_tilemap = []
-    for _ in range(30):
-        chunk_tilemap.append([" "] * MAX_COLS )
-
-    chunks.append(chunk_tilemap)
 
     chunk_file = open(filename, "r")
     row = 0
@@ -44,10 +36,10 @@ def load_chunk(filename):
                 break
             if col >= MAX_COLS :
                 break
-            x = col * TILE_SIZE
+            x = ((i*MAX_COLS)+col) * TILE_SIZE
             y = row * TILE_SIZE
             if c == '#':
-                chunk_tilemap[ row ][ col ] = Stone(Vec2_i(x, y))
+                Stone(Vec2_i(x, y))
             if c == 'C':
                 Cicada(Vec2_f(x, y))
             col+=1
@@ -55,31 +47,15 @@ def load_chunk(filename):
         row += 1
         if row >= MAX_ROWS - 1:
             break
-    global num_chunks 
-    num_chunks += 1
 
 def load_chunks():
-    """ Loads all chunk files into list and then randomizes
-    """
-    global chunks
-    chunks.clear()
-    for chunk_filename in sample(chunk_list, chunks_max):
-        load_chunk( 'chunks/' + chunk_filename )
-
-    Tile.master_map.clear()
-    for chunk in chunks:
-        for i, line in enumerate(chunk):
-            if len(Tile.master_map) <= i:
-                Tile.master_map += [line]
-            else:
-                Tile.master_map[i] += line
-
+    for i, filename in enumerate(chunk_list):
+        load_chunk(i, 'chunks/'+filename)
+        
 def render_master_map( background ):
-    MAX_COLS = 40
-    for row_num, row_arr in enumerate(Tile.master_map):
-        for col_num, val in enumerate( row_arr ):
-            if Tile in type(val).__mro__:
-                val.draw(background)
+    for entity in Entity.entities:
+        if Tile in type(entity).__mro__:
+            entity.draw(background)
 
 # ============
 # Entity logic
@@ -105,8 +81,8 @@ class Vec2_i:
     y = 0
 
     def __init__( self, x, y ):
-        self.x = x 
-        self.y = y
+        self.x = int(x)
+        self.y = int(y)
 
 # Base class, fyi
 # An important thing to note about the Entity class, and its
@@ -117,7 +93,6 @@ class Entity:
     entities = []
     def __init__(self, p):
         Entity.entities += [self]
-        self.solid = True
         self.p = p
 
     def update(self):
@@ -133,12 +108,14 @@ class Entity:
 # Tile entities have a different render system.
 class Tile(Entity):
     # The master map is assembled from the chunk sequence, to avoid the need for calculating offsets.
-    master_map = []
+    master_map = {}
+    def __init__(self, p):
+        super().__init__(p)
+        Tile.master_map[self.p] = self
+        
     def remove(self):
         super().remove()
-        mmx = int(self.p.x/TILE_SIZE)
-        mmy = int(self.p.y/TILE_SIZE)
-        Tile.master_map[mmy][mmx] = None
+        Tile.master_map[self.p] = None
 
 class Stone(Entity):
     def remove(self):
@@ -239,23 +216,16 @@ class Projectile(Particle):
         
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
+        tp = Vec2_i(tx, ty)
         
-        entities_copy = [entity for entity in Entity.entities]
-        for entity in entities_copy:
-            if type(entity) in (Projectile,):
-                continue
-            ex = int(entity.p.x/TILE_SIZE)
-            ey = int(entity.p.y/TILE_SIZE)
-            if tx == ex and ty == ey:
-                if type(entity) is Cicada:
-                    entity.remove() # KILL CICADA!!
-                    self.cicada_update_context()
+        if type(Tile.master_map.get(tp, None)) is Cicada:
+            Tile.master_map[tp].remove() # KILL CICADA!!
+            self.cicada_update_context()
 
-        if 0 <= ty < len(Tile.master_map) and 0 <= tx < len(Tile.master_map[ty]): # Prevent out of bounds errors
-            if type(Tile.master_map[ty][tx]) == Stone:
+        if type(Tile.master_map.get(tp, None)) == Stone:
                 self.decrease_lifespan()
                 if self.lifespan > 0 or random() < 0.03:
-                    Tile.master_map[ty][tx].remove() # Destructible terrain
+                    Tile.master_map[tp].remove() # Destructible terrain
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -439,7 +409,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if tx < len(Tile.master_map[0]) and ty < len(Tile.master_map) and type(Tile.master_map[ty+1][tx]) == Stone:
+        if type(Tile.master_map.get(Vec2_i(tx, ty+1), None)) == Stone:
             self.remove()
                     
     def draw(self, background):
