@@ -375,6 +375,7 @@ class Cicada(Tile):
     def remove(self):
         super().remove()
         Cicada.cart.score += 1
+        Cicada.cart.effect_counter += Cart.killed_cicada_effect_counter
         self.kablooie()
 
     def kablooie(self):
@@ -414,7 +415,10 @@ class Cart(Entity):
         bmx = mx - vbx
         bmy = my - vby
         return bmx, bmy
-
+    
+    killed_cicada_effect_counter = 3 # Used to generate camera jostle when cicada killed
+    kablooie_effect_counter_max = 50 # Used to generate camera jostle when cart explodes
+    
     # Now begins the actual cart behavior logic.
     # The logic does two main things:
     # 1. Move the cart forward
@@ -427,6 +431,7 @@ class Cart(Entity):
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
+        self.effect_counter = 0
 
     def update(self):
         self.p.x += self.velocity.x * self.speed
@@ -441,6 +446,7 @@ class Cart(Entity):
     def remove(self):
         super().remove()
         self.kablooie()
+        self.effect_counter += Cart.kablooie_effect_counter_max
 
     def kablooie(self):
         for _ in range(randint(100, 300)):
@@ -583,7 +589,7 @@ def main():
             render_master_map(canvas)
 
             # Draw the cart track
-            pg.draw.line(canvas, (100, 30, 20), (0, 260), (CANVASDIM[0], 260), 2) 
+            pg.draw.line(canvas, (100, 30, 20), (0, cart_start.y+30), (CANVASDIM[0], cart_start.y+30), 2) 
 
             # Draw the dynamic entities
             for e in Entity.entities:
@@ -594,7 +600,11 @@ def main():
             render_foreground(canvas)
             
             # Adjust the viewport to center on the cart
-            vbp = cart.canvas_coord_on_viewport()
+            vbpx, vbpy = cart.canvas_coord_on_viewport()
+            # Jostle the camera from killing the cicada
+            vbpx += (random()-0.5)*cart.effect_counter
+            vbpy += (random()-0.5)*cart.effect_counter
+            vbp = vbpx, vbpy
             viewport.fill((255, 255, 255))
             viewport.blit(canvas, vbp)
             screen.blit(viewport, (0, 0))
@@ -616,7 +626,10 @@ def main():
             entities_copy = [entity for entity in Entity.entities]
             for e in entities_copy: # Copy necessary b/c destructive of entities list
                 e.update()
-    
+
+            # Reset to prevent dead cicada effects
+            cart.effect_counter = max(0, cart.effect_counter-1)
+                
             if not cart in Entity.entities:
                 if len(Gore.particles) == 0 and len(Goo.particles) == 0:
                     dead = True
