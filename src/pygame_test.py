@@ -49,7 +49,9 @@ def load_chunk(i, filename):
             break
 
 def load_chunks():
-    for i, filename in enumerate(chunk_list):
+    Entity.entities.clear()
+    Tile.master_map.clear()
+    for i, filename in enumerate(sample(chunk_list, chunks_max)):
         load_chunk(i, 'chunks/'+filename)
         
 def render_master_map( background ):
@@ -134,6 +136,10 @@ class Tile(Entity):
         Tile.master_map[(self.p.x, self.p.y)] = None
 
 class Stone(Tile):
+    stone = None
+    def init():
+        Stone.stone = pg.transform.scale(images['stone'], (20, 20))
+        
     def remove(self):
         super().remove()
         self.kablooie()
@@ -148,7 +154,7 @@ class Stone(Tile):
 
     def draw(self, background):
         dest_tile_rect = pg.Rect(self.p.x, self.p.y, TILE_SIZE, TILE_SIZE )
-        background.blit(images['stone'], dest_tile_rect )
+        background.blit(Stone.stone, dest_tile_rect )
 
 # All particles have a limited lifespan and a velocity.
 # There is some introspection trickery here because each particle type
@@ -416,15 +422,15 @@ class Cart(Entity):
     def __init__(self, p):
         super().__init__(p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 1
+        self.speed = 2
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
 
     def update(self):
         self.p.x += self.velocity.x * self.speed
-        tx = int(self.p.x/TILE_SIZE)
-        ty = int(self.p.y/TILE_SIZE)
+        tx = int(self.p.x/TILE_SIZE)*TILE_SIZE
+        ty = int(self.p.y/TILE_SIZE)*TILE_SIZE
         if type(Tile.master_map.get((tx, ty+1))) == Stone:
             self.remove()
                     
@@ -523,18 +529,19 @@ def main():
         canvas.blit(grass, (SCREENDIM[0]*1 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
         canvas.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
         
-    stone = pg.transform.scale(images['stone'], (20, 20))
+    Stone.init()
     
+    fullauto = False
+    dead = False
+
     cart_start = Vec2_f(0, 230)
     cart = Cart(Vec2_f(cart_start.x, cart_start.y))
     Cicada.cart = cart
         
-    fullauto = False
-    dead = False
-
     while not dead:
         # Create the master_map
         load_chunks()
+        Entity.entities += [cart]
 
         # Initialize the cart
         cart.p = Vec2_f(cart_start.x, cart_start.y)
