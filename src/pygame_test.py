@@ -76,6 +76,14 @@ class Vec2_f:
         self.x = x 
         self.y = y
 
+    def __repr__(self):
+        return '(x:'+str(self.x)+',y:'+str(self.y)+')'
+
+    def __eq__(self, other):
+        if type(other) is Vec2_f:
+            return self.x == other.x and self.y == other.y
+        return False
+        
 class Vec2_i: 
     x = 0
     y = 0
@@ -84,6 +92,14 @@ class Vec2_i:
         self.x = int(x)
         self.y = int(y)
 
+    def __repr__(self):
+        return '(x:'+str(self.x)+',y:'+str(self.y)+')'
+
+    def __eq__(self, other):
+        if type(other) is Vec2_f:
+            return self.x == other.x and self.y == other.y
+        return False
+        
 # Base class, fyi
 # An important thing to note about the Entity class, and its
 # subclasses, is that it maintains the list of entities.  Objects
@@ -111,13 +127,13 @@ class Tile(Entity):
     master_map = {}
     def __init__(self, p):
         super().__init__(p)
-        Tile.master_map[self.p] = self
+        Tile.master_map[(self.p.x, self.p.y)] = self
         
     def remove(self):
         super().remove()
-        Tile.master_map[self.p] = None
+        Tile.master_map[(self.p.x, self.p.y)] = None
 
-class Stone(Entity):
+class Stone(Tile):
     def remove(self):
         super().remove()
         self.kablooie()
@@ -214,18 +230,18 @@ class Projectile(Particle):
     def update(self):
         super().update()
         
-        tx = int(self.p.x/TILE_SIZE)
-        ty = int(self.p.y/TILE_SIZE)
-        tp = Vec2_i(tx, ty)
+        tx = int(self.p.x/TILE_SIZE)*TILE_SIZE
+        ty = int(self.p.y/TILE_SIZE)*TILE_SIZE
+        tp = tx, ty
         
         if type(Tile.master_map.get(tp, None)) is Cicada:
             Tile.master_map[tp].remove() # KILL CICADA!!
             self.cicada_update_context()
 
-        if type(Tile.master_map.get(tp, None)) == Stone:
-                self.decrease_lifespan()
-                if self.lifespan > 0 or random() < 0.03:
-                    Tile.master_map[tp].remove() # Destructible terrain
+        if type(Tile.master_map.get(tp, None)) is Stone:
+            self.decrease_lifespan()
+            if self.lifespan > 0 or random() < 0.03:
+                Tile.master_map[tp].remove() # Destructible terrain
         
     def draw(self, background):
         pg.draw.circle(background, (0,0,0), (self.p.x, self.p.y), 3, 3)
@@ -409,7 +425,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)
         ty = int(self.p.y/TILE_SIZE)
-        if type(Tile.master_map.get(Vec2_i(tx, ty+1), None)) == Stone:
+        if type(Tile.master_map.get((tx, ty+1))) == Stone:
             self.remove()
                     
     def draw(self, background):
