@@ -417,7 +417,7 @@ class Cart(Entity):
         return bmx, bmy
     
     killed_cicada_effect_counter = 2 # Used to generate camera jostle when cicada killed
-    kablooie_effect_counter_max = 20 # Used to generate camera jostle when cart explodes
+    kablooie_effect_counter_max = 50 # Used to generate camera jostle when cart explodes
     
     # Now begins the actual cart behavior logic.
     # The logic does two main things:
