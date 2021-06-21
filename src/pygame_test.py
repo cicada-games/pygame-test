@@ -422,7 +422,7 @@ class Cart(Entity):
     def __init__(self, p):
         super().__init__(p)
         self.velocity = Vec2_f(1, 0)
-        self.speed = 2
+        self.speed = 3
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
@@ -431,7 +431,7 @@ class Cart(Entity):
         self.p.x += self.velocity.x * self.speed
         tx = int(self.p.x/TILE_SIZE)*TILE_SIZE
         ty = int(self.p.y/TILE_SIZE)*TILE_SIZE
-        if type(Tile.master_map.get((tx, ty+1))) == Stone:
+        if type(Tile.master_map.get((tx+1, ty+1), None)) is Stone:
             self.remove()
                     
     def draw(self, background):
@@ -503,8 +503,8 @@ def main():
     CursorAimer()
     clock = pg.time.Clock()
         
-    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
-    screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
+    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
+    #screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
 
     canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
