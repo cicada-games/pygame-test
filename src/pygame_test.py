@@ -16,6 +16,7 @@ main_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 # ===================================================
 chunk_list = os.listdir('chunks')
 #chunk_list = ('chunk1','chunk1','chunk1','chunk1',) # handy for debugging
+chunk_list = ('chunk11','chunk11','chunk11','chunk11',) # handy for debugging
 chunks_max = 3
 
 MAX_COLS = 40
@@ -429,9 +430,9 @@ class Cart(Entity):
 
     def update(self):
         self.p.x += self.velocity.x * self.speed
-        tx = int(self.p.x/TILE_SIZE)*TILE_SIZE
-        ty = int(self.p.y/TILE_SIZE)*TILE_SIZE
-        if type(Tile.master_map.get((tx+1, ty+1), None)) is Stone:
+        tx = int(self.p.x/TILE_SIZE+1)*TILE_SIZE
+        ty = int(self.p.y/TILE_SIZE+1)*TILE_SIZE
+        if type(Tile.master_map.get((tx, ty), None)) is Stone:
             self.remove()
                     
     def draw(self, background):
@@ -503,8 +504,8 @@ def main():
     CursorAimer()
     clock = pg.time.Clock()
         
-    screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
-    #screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
+    #screen = pg.display.set_mode(SCREENDIM, pg.FULLSCREEN, 24) # Funnerer
+    screen = pg.display.set_mode(SCREENDIM, 0, 24) # Better for debugging and testing
 
     canvas = pg.Surface(CANVASRECT.size)
     viewport = pg.Surface(SCREENRECT.size)
