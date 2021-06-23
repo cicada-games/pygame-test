@@ -69,10 +69,10 @@ class Sfx:
     def init():
         pg.mixer.pre_init(44100, channels=1)
         pg.mixer.init()
-        Sfx.blorp = pg.mixer.Sound(buffer=pyfxr.powerup())
+        Sfx.blorp = pg.mixer.Sound(buffer=pyfxr.explosion())
         Sfx.shoot = pg.mixer.Sound(buffer=pyfxr.laser())
         Sfx.death = pg.mixer.Sound(buffer=pyfxr.explosion())
-        Sfx.poofs = pg.mixer.Sound(buffer=pyfxr.jump())
+        Sfx.poofs = pg.mixer.Sound(buffer=pyfxr.explosion())
             
 # ============
 # Entity logic
