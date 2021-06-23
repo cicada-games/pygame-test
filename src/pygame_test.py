@@ -16,7 +16,7 @@ main_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 # ===================================================
 chunk_list = os.listdir('chunks')
 #chunk_list = ('chunk1','chunk1','chunk1','chunk1',) # handy for debugging
-chunk_list = ('chunk11','chunk11','chunk11','chunk11',) # handy for debugging
+#chunk_list = ('chunk11','chunk11','chunk11','chunk11',) # handy for debugging
 chunks_max = 3
 
 MAX_COLS = 40
