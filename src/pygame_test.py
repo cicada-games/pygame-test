@@ -1,4 +1,5 @@
 import pygame as pg
+import pyfxr
 from pygame.locals import *
 from random import random, randint, sample
 import time
@@ -60,6 +61,19 @@ def render_master_map( background ):
         if Tile in type(entity).__mro__:
             entity.draw(background)
 
+# ===
+# Sfx
+# ===
+
+class Sfx:
+    def init():
+        pg.mixer.pre_init(44100, channels=1)
+        pg.mixer.init()
+        Sfx.blorp = pg.mixer.Sound(buffer=pyfxr.powerup())
+        Sfx.shoot = pg.mixer.Sound(buffer=pyfxr.laser())
+        Sfx.death = pg.mixer.Sound(buffer=pyfxr.explosion())
+        Sfx.poofs = pg.mixer.Sound(buffer=pyfxr.jump())
+            
 # ============
 # Entity logic
 # ============
@@ -146,6 +160,7 @@ class Stone(Tile):
         self.kablooie()
         
     def kablooie(self):
+        Sfx.poofs.play()
         for _ in range(randint(5, 10)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             angle = math.pi*2*random()
@@ -379,6 +394,7 @@ class Cicada(Tile):
         self.kablooie()
 
     def kablooie(self):
+        Sfx.blorp.play()
         for _ in range(randint(0, 50)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
@@ -449,6 +465,7 @@ class Cart(Entity):
         self.effect_counter += Cart.kablooie_effect_counter_max
 
     def kablooie(self):
+        Sfx.death.play()
         for _ in range(randint(100, 300)):
             gp = Vec2_f(self.p.x+TILE_SIZE/2, self.p.y+TILE_SIZE/2)
             angle = math.pi*2*random()
@@ -476,6 +493,7 @@ class Cart(Entity):
         bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
             self.bullets -= 1
+            Sfx.shoot.play()
             Bullet(bbp, bbvn, self)
 
 
@@ -537,6 +555,7 @@ def main():
         canvas.blit(grass, (SCREENDIM[0]*2 + (SCREENDIM[0]-grass.get_width())/2, SCREENDIM[1]-grass.get_height()+50))
         
     Stone.init()
+    Sfx.init()
     
     fullauto = False
     dead = False
