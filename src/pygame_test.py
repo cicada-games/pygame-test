@@ -271,7 +271,7 @@ class Projectile(Particle):
 class Bullet(Projectile):
     particles_max = 100
     particles = []
-    max_lifespan = 100
+    max_lifespan = 20
 
     def __init__(self, p, v, cart):
         super().__init__(p, v)
@@ -425,7 +425,6 @@ class Cart(Entity):
     vh = SCREENDIM[1]
     vcx = (vw-cw)/2
     vcy = (vh-ch)/2
-    max_lifespan = 10
     def canvas_coord_on_viewport(self):
         bcx, bcy = self.p.x, self.p.y
         vbx = max(min(Cart.vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
@@ -450,7 +449,7 @@ class Cart(Entity):
         super().__init__(p)
         self.track_y = track_y
         self.velocity = Vec2_f(1, 0)
-        self.speed = 3
+        self.speed = 2
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
         self.bullets = 100
         self.score = 0
