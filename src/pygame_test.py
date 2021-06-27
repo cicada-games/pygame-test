@@ -425,7 +425,7 @@ class Cart(Entity):
     vh = SCREENDIM[1]
     vcx = (vw-cw)/2
     vcy = (vh-ch)/2
-    max_lifespan = 100
+    max_lifespan = 10
     def canvas_coord_on_viewport(self):
         bcx, bcy = self.p.x, self.p.y
         vbx = max(min(Cart.vcx - bcx, 0), SCREENDIM[0]-CANVASDIM[0])
