@@ -272,6 +272,7 @@ class Bullet(Projectile):
     particles_max = 100
     particles = []
     max_lifespan = 100
+    recoil = 5
 
     def __init__(self, p, v, cart):
         super().__init__(p, v)
@@ -400,6 +401,12 @@ class Cicada(Tile):
             gv = Vec2_f((random()-0.5)*3, (random()-0.5)*3)
             Goo(gp, gv)
 
+# **********
+# World Info
+# **********
+
+class World:
+    gravity = 0.1
             
 # ****
 # Cart
@@ -440,8 +447,9 @@ class Cart(Entity):
     # 1. Move the cart forward
     # 2. Fire bullets
     
-    def __init__(self, p):
+    def __init__(self, p, track_y):
         super().__init__(p)
+        self.track_y = track_y
         self.velocity = Vec2_f(1, 0)
         self.speed = 3
         self.sprite = pg.transform.scale(images['minecart'], (Cart.width, Cart.height))
@@ -450,7 +458,12 @@ class Cart(Entity):
         self.effect_counter = 0
 
     def update(self):
+        self.velocity.y += World.gravity
         self.p.x += self.velocity.x * self.speed
+        self.p.y += self.velocity.y
+        if self.p.y > self.track_y:
+            self.p.y = self.track_y
+            self.velocity.y = 0
         tx = int(self.p.x/TILE_SIZE+1)*TILE_SIZE
         ty = int(self.p.y/TILE_SIZE+1)*TILE_SIZE
         if type(Tile.master_map.get((tx, ty), None)) is Stone:
@@ -486,12 +499,20 @@ class Cart(Entity):
         bbvh = (bbvx ** 2 + bbvy ** 2) ** (1/2)
         bbv = 10
         bbvn = Vec2_f(bbv, 0)
+        bbvxn = 0
+        bbvyn = 0
         if bbvh > 0:
-            bbvxn = bbvx/bbvh * bbv + (random()-0.5)
-            bbvyn = bbvy/bbvh * bbv + (random()-0.5)
-            bbvn = Vec2_f(bbvxn, bbvyn)
+            bbvxn = bbvx/bbvh
+            bbvyn = bbvy/bbvh
+            bbvxv = bbvxn * bbv
+            bbvyv = bbvyn * bbv
+            bbvxvr = bbvxv + (random()-0.5)
+            bbvyvr = bbvyv + (random()-0.5)
+            bbvn = Vec2_f(bbvxvr, bbvyvr)
         bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
+            self.p.x -= bbvxn * Bullet.recoil # recoil x
+            self.p.y -= bbvyn * Bullet.recoil # recoil y
             self.bullets -= 1
             Sfx.shoot.play()
             Bullet(bbp, bbvn, self)
@@ -561,7 +582,7 @@ def main():
     dead = False
 
     cart_start = Vec2_f(0, 230)
-    cart = Cart(Vec2_f(cart_start.x, cart_start.y))
+    cart = Cart(Vec2_f(cart_start.x, cart_start.y), cart_start.y)
     Cicada.cart = cart
         
     while not dead:
