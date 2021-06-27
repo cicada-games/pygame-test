@@ -272,7 +272,6 @@ class Bullet(Projectile):
     particles_max = 100
     particles = []
     max_lifespan = 100
-    recoil = 5
 
     def __init__(self, p, v, cart):
         super().__init__(p, v)
@@ -511,8 +510,9 @@ class Cart(Entity):
             bbvn = Vec2_f(bbvxvr, bbvyvr)
         bbvn.x += self.speed # Correct for forward velocity
         if self.bullets >= 1:
-            self.p.x -= bbvxn * Bullet.recoil # recoil x
-            self.p.y -= bbvyn * Bullet.recoil # recoil y
+            recoil = Bullet.max_lifespan / 20
+            self.p.x -= bbvxn * recoil
+            self.p.y -= bbvyn * recoil
             self.bullets -= 1
             Sfx.shoot.play()
             Bullet(bbp, bbvn, self)
