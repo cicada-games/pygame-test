@@ -48,7 +48,7 @@ unsigned int fireBullet(Position_f initialPos, Vector_f initialVel ) {
     unsigned int bulletId = 65; //invalid
     // this keeps looking for the first bit that is 0. This means an unactivated bullet that can become active.
     for( int i = 0; i < 64; i++ ) {
-        if( ( bulletActiveMask << i ) & 0b0 ) {
+        if( ( ( bulletActiveMask >> i ) & 0b1 ) == 0 ) {
             bulletId = i;
             break;
         }
