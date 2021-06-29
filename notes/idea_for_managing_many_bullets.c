@@ -72,7 +72,7 @@ void deactivateBullet( unsigned int bulletId ) {
 void bulletsUpdate( ) {
     for( int i = 0; i < MAX_NUM_BULLETS; i++ ) {
         // bullet is inactive
-        if( bulletActiveMask & ( 0b1 < i ) == 0b0 ) {
+        if( bulletActiveMask & ( 0b1 << i ) == 0b0 ) {
             continue;
         }
         // bullet is active
